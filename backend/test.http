@@ -1,0 +1,3 @@
+### Protected endpoint - WITH JWT
+GET http://localhost:8080/api/users/me
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJzYW5naGFydG5hQGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2MzA2MjIzLCJleHAiOjE3ODYzMDk4MjN9.0o2k9bL32rDiA3unXbekpC5Di8qzWVSRkwVRrd9VffSM44Rm4xqg5jOQoMqr41MC
