@@ -1,0 +1,40 @@
+#### Create Expense
+#POST http://localhost:8080/api/expenses
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NDIyMTk3LCJleHAiOjE3ODY0MjU3OTd9.u-zZr9ObJkPMgz3jyCK6wdgOirBzdQXJ7L9wx9OeaHjW4CFUjZ-J8uZJgAbzlavF
+#Content-Type: application/json
+#
+#{
+#  "amount": 500.00,
+#  "category": "FOOD",
+#  "description": "Lunch at college",
+#  "expenseDate": "2026-08-11T09:00:00"
+#}
+
+#GET http://localhost:8080/api/expenses
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NDIyMTk3LCJleHAiOjE3ODY0MjU3OTd9.u-zZr9ObJkPMgz3jyCK6wdgOirBzdQXJ7L9wx9OeaHjW4CFUjZ-J8uZJgAbzlavF
+
+####GET http://localhost:8080/api/expenses
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NDE4Nzg3LCJleHAiOjE3ODY0MjIzODd9.p_nzufPdjLZb35pYt7JhCuj4XwtlkQT5sXZ0oQriBBLF4umT1McjiX10BxLOJr0v
+
+PUT http://localhost:8080/api/expenses
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NDE4Nzg3LCJleHAiOjE3ODY0MjIzODd9.p_nzufPdjLZb35pYt7JhCuj4XwtlkQT5sXZ0oQriBBLF4umT1McjiX10BxLOJr0v
+Content-Type: application/json
+
+{
+  "amount": 300.00,
+  "category": "FOOD",
+  "description": "Updated lunch",
+  "expenseDate": "2026-08-11T09:00:00"
+}
+
+###
+#GET http://localhost:8080/api/expenses/a8330986-c78c-4fd8-92ed-7ec6bd0bb925
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NDE4Nzg3LCJleHAiOjE3ODY0MjIzODd9.p_nzufPdjLZb35pYt7JhCuj4XwtlkQT5sXZ0oQriBBLF4umT1McjiX10BxLOJr0v
+
+
+#
+
+
+
+#GET http://localhost:8080/api/expenses/a8330986-c78c-4fd8-92ed-7ec6bd0bb925
+#Authorization:Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NDE4Nzg3LCJleHAiOjE3ODY0MjIzODd9.p_nzufPdjLZb35pYt7JhCuj4XwtlkQT5sXZ0oQriBBLF4umT1McjiX10BxLOJr0v

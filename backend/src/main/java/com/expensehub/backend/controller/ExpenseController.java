@@ -1,14 +1,18 @@
 package com.expensehub.backend.controller;
 
+import com.expensehub.backend.dto.ExpenseRequest;
+import com.expensehub.backend.dto.ExpenseResponse;
 import com.expensehub.backend.entity.Expense;
 import com.expensehub.backend.entity.User;
+import com.expensehub.backend.exception.ResourceNotFoundException;
 import com.expensehub.backend.repository.UserRepository;
 import com.expensehub.backend.service.ExpenseService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import com.expensehub.backend.exception.ResourceNotFoundException;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -28,8 +32,8 @@ public class ExpenseController {
     }
 
     @PostMapping
-    public ResponseEntity<Expense> createExpense(
-            @RequestBody Expense expense,
+    public ResponseEntity<ExpenseResponse> createExpense(
+            @Valid @RequestBody ExpenseRequest request,
             Authentication authentication
     ) {
 
@@ -37,10 +41,10 @@ public class ExpenseController {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new ResourceNotFoundException("User not found"));
 
-        Expense createdExpense =
-                expenseService.createExpense(expense, user);
+        ExpenseResponse createdExpense =
+                expenseService.createExpense(request, user);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -48,7 +52,7 @@ public class ExpenseController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Expense>> getExpenses(
+    public ResponseEntity<List<ExpenseResponse>> getExpenses(
             Authentication authentication
     ) {
 
@@ -56,16 +60,16 @@ public class ExpenseController {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new ResourceNotFoundException("User not found"));
 
-        List<Expense> expenses =
+        List<ExpenseResponse> expenses =
                 expenseService.getUserExpenses(user);
 
         return ResponseEntity.ok(expenses);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Expense> getExpense(
+    public ResponseEntity<ExpenseResponse> getExpense(
             @PathVariable UUID id,
             Authentication authentication
     ) {
@@ -83,13 +87,19 @@ public class ExpenseController {
             return ResponseEntity.notFound().build();
         }
 
-        return ResponseEntity.ok(expense);
+        /*
+         * Convert the entity to a safe response.
+         */
+        ExpenseResponse response =
+                expenseService.convertToResponseForController(expense);
+
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Expense> updateExpense(
+    public ResponseEntity<ExpenseResponse> updateExpense(
             @PathVariable UUID id,
-            @RequestBody Expense updatedExpense,
+            @Valid @RequestBody ExpenseRequest request,
             Authentication authentication
     ) {
 
@@ -97,7 +107,7 @@ public class ExpenseController {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+                        new ResourceNotFoundException("User not found"));
 
         Expense existingExpense =
                 expenseService.getExpenseById(id);
@@ -106,10 +116,10 @@ public class ExpenseController {
             return ResponseEntity.notFound().build();
         }
 
-        Expense expense =
-                expenseService.updateExpense(id, updatedExpense);
+        ExpenseResponse response =
+                expenseService.updateExpense(id, request);
 
-        return ResponseEntity.ok(expense);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{id}")
