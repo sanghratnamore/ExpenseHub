@@ -1,0 +1,9 @@
+GET http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/balances
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2Nzk1NTQ5LCJleHAiOjE3ODY3OTkxNDl9.oU5vSoKq5ZOTe33GIBSQLg6hYfo5NeB81x4d2miJ5B69xUiVC93c8HtjoFMCd9pi
+#Content-Type: application/json
+#
+#{
+#  "paidById": "b8a99a1f-1f72-4478-95db-e99f3e9f6f02",
+#  "paidToId": "b3d07f5a-1db0-4893-95a2-c269dc8bc98a",
+#  "amount": 400
+#}

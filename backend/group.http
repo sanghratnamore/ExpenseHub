@@ -1,0 +1,119 @@
+### Create Group
+#POST http://localhost:8080/api/groups
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTY5MjEyLCJleHAiOjE3ODY1NzI4MTJ9.8MmOco2htKkuZ6kc8vwc95AcXduFNRg25bgvkoHuEe5jlpspiB4mW9XCPzfZSxIT
+#Content-Type: application/json
+#
+#{
+#  "name": "Goa Trip"
+#}
+
+###
+
+
+#
+#GET http://localhost:8080/api/groups
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTY5MjEyLCJleHAiOjE3ODY1NzI4MTJ9.8MmOco2htKkuZ6kc8vwc95AcXduFNRg25bgvkoHuEe5jlpspiB4mW9XCPzfZSxIT
+
+
+#POST http://localhost:8080/api/groups/GROUP_ID/expenses
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTY5MjEyLCJleHAiOjE3ODY1NzI4MTJ9.8MmOco2htKkuZ6kc8vwc95AcXduFNRg25bgvkoHuEe5jlpspiB4mW9XCPzfZSxIT
+#Content-Type: application/json
+#
+#{
+#  "amount": 3000.00,
+#  "description": "Dinner",
+#  "category": "Food",
+#  "expenseDate": "2026-08-11T20:30:00",
+#  "paidBy": "PAYER_USER_UUID",
+#  "participantIds": [
+#    "USER_UUID_1",
+#    "USER_UUID_2",
+#    "USER_UUID_3",
+#    "USER_UUID_4"
+#  ]
+#}
+
+
+#POST http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/expenses
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTY5MjEyLCJleHAiOjE3ODY1NzI4MTJ9.8MmOco2htKkuZ6kc8vwc95AcXduFNRg25bgvkoHuEe5jlpspiB4mW9XCPzfZSxIT
+#Content-Type: application/json
+#
+#{
+#  "amount": 1000.00,
+#  "description": "Goa Hotel",
+#  "category": "Travel",
+#  "expenseDate": "2026-08-13T03:10:00",
+#  "paidBy": "b8a99a1f-1f72-4478-95db-e99f3e9f6f02",
+#  "participantIds": [
+#    "b8a99a1f-1f72-4478-95db-e99f3e9f6f02"
+#  ]
+#}
+
+#GET http://localhost:8080/api/groups/expenses/2ab68e28-ca63-404b-b880-4d01aea4153a/participants
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTY5MjEyLCJleHAiOjE3ODY1NzI4MTJ9.8MmOco2htKkuZ6kc8vwc95AcXduFNRg25bgvkoHuEe5jlpspiB4mW9XCPzfZSxIT
+
+#GET http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/expenses
+
+#GET http://localhost:8080/api/groups/expenses/2ab68e28-ca63-404b-b880-4d01aea4153a/participants
+#POST http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/members
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTY5MjEyLCJleHAiOjE3ODY1NzI4MTJ9.8MmOco2htKkuZ6kc8vwc95AcXduFNRg25bgvkoHuEe5jlpspiB4mW9XCPzfZSxIT
+#Content-Type: application/json
+#
+#{
+#  "userIds": [
+#    "b3d07f5a-1db0-4893-95a2-c269dc8bc98a"
+#  ]
+#}
+
+
+#POST http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/expenses
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTcyOTQ2LCJleHAiOjE3ODY1NzY1NDZ9.N-INWhrwBETKvoCujr0K6xHH2si7CGvNyYx3KkVLwYBMDCuR_x7bGoGzV_IWhUBN
+#Content-Type: application/json
+#
+#{
+#  "amount": 1000,
+#  "description": "Goa Dinner",
+#  "category": "Food",
+#  "expenseDate": "2026-08-13T20:00:00",
+#  "paidBy": "b8a99a1f-1f72-4478-95db-e99f3e9f6f02",
+#  "participantIds": [
+#    "b3d07f5a-1db0-4893-95a2-c269dc8bc98a",
+#    "b8a99a1f-1f72-4478-95db-e99f3e9f6f02"
+#  ]
+#}
+
+
+
+#GET http://localhost:8080/api/groups/expenses/aed1356a-18b1-4128-840c-2e67c24d1b63/participants
+
+#GET http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/balances
+
+#GET http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/settlements
+
+#POST http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/expenses/custom
+#Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTc0MjExLCJleHAiOjE3ODY1Nzc4MTF9.SFzxqSl674WwxbiYtVGATuiJ2JlJe51bfMVkPnMYqFE9a0gRuFMFJSa_Wgs7Nb6N
+#Content-Type: application/json
+#
+#{
+#  "amount": 2000,
+#  "description": "Goa Hotel",
+#  "category": "Hotel",
+#  "expenseDate": "2026-08-13T20:00:00",
+#  "paidBy": "b8a99a1f-1f72-4478-95db-e99f3e9f6f02",
+#  "participants": [
+#    {
+#      "userId": "b8a99a1f-1f72-4478-95db-e99f3e9f6f02",
+#      "shareAmount": 1200
+#    },
+#    {
+#      "userId": "b3d07f5a-1db0-4893-95a2-c269dc8bc98a",
+#      "shareAmount": 800
+#    }
+#  ]
+#}
+
+
+#GET http://localhost:8080/api/groups/expenses/11d5f328-5891-4d0f-8fb4-4a222796fd2f/participants
+
+GET http://localhost:8080/api/groups/3af1d58e-82dc-45c3-828d-e2611493fdd9/balances
+Authorization: Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJ0ZXN0QGV4YW1wbGUuY29tIiwiaWF0IjoxNzg2NTc0MjExLCJleHAiOjE3ODY1Nzc4MTF9.SFzxqSl674WwxbiYtVGATuiJ2JlJe51bfMVkPnMYqFE9a0gRuFMFJSa_Wgs7Nb6N

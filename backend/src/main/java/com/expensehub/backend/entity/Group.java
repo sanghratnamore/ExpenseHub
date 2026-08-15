@@ -4,15 +4,11 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalDateTime;
-import jakarta.persistence.PrePersist;
-
-
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
-public class User {
+@Table(name = "expense_groups")
+public class Group {
 
     @Id
     @UuidGenerator
@@ -21,17 +17,15 @@ public class User {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, unique = true)
-    private String email;
-
-    @Column(nullable = false)
-    private String password;
-
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by", nullable = false)
+    private User createdBy;
 
     @PrePersist
     protected void onCreate() {
@@ -44,12 +38,8 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
-    public User() {
+    public Group() {
     }
-
-
-// Getters and setters
-
 
     public UUID getId() {
         return id;
@@ -67,19 +57,19 @@ public class User {
         this.name = name;
     }
 
-    public String getEmail() {
-        return email;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
-    public String getPassword() {
-        return password;
+    public User getCreatedBy() {
+        return createdBy;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setCreatedBy(User createdBy) {
+        this.createdBy = createdBy;
     }
 }
