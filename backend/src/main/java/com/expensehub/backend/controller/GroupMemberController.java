@@ -3,6 +3,7 @@ package com.expensehub.backend.controller;
 import com.expensehub.backend.dto.GroupMemberResponse;
 import com.expensehub.backend.service.GroupMemberService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,11 +28,15 @@ public class GroupMemberController {
 
     @GetMapping("/{groupId}/members")
     public ResponseEntity<List<GroupMemberResponse>> getGroupMembers(
-            @PathVariable UUID groupId
+            @PathVariable UUID groupId,
+            Authentication authentication
     ) {
 
         return ResponseEntity.ok(
-                groupMemberService.getGroupMembers(groupId)
+                groupMemberService.getGroupMembers(
+                        groupId,
+                        authentication.getName()
+                )
         );
     }
 
@@ -43,13 +48,15 @@ public class GroupMemberController {
     @PostMapping("/{groupId}/members/{userId}")
     public ResponseEntity<GroupMemberResponse> addMember(
             @PathVariable UUID groupId,
-            @PathVariable UUID userId
+            @PathVariable UUID userId,
+            Authentication authentication
     ) {
 
         return ResponseEntity.ok(
                 groupMemberService.addMember(
                         groupId,
-                        userId
+                        userId,
+                        authentication.getName()
                 )
         );
     }
@@ -62,12 +69,14 @@ public class GroupMemberController {
     @DeleteMapping("/{groupId}/members/{userId}")
     public ResponseEntity<Void> removeMember(
             @PathVariable UUID groupId,
-            @PathVariable UUID userId
+            @PathVariable UUID userId,
+            Authentication authentication
     ) {
 
         groupMemberService.removeMember(
                 groupId,
-                userId
+                userId,
+                authentication.getName()
         );
 
         return ResponseEntity.noContent().build();

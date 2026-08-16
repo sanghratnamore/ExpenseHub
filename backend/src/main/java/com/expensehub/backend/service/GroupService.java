@@ -11,8 +11,6 @@ import com.expensehub.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class GroupService {
 
@@ -44,19 +42,21 @@ public class GroupService {
             );
         }
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "User not found"
-                        )
-                );
+        User user =
+                userRepository.findByEmail(email)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "User not found"
+                                )
+                        );
 
         Group group = new Group();
 
         group.setName(request.getName().trim());
         group.setCreatedBy(user);
 
-        Group savedGroup = groupRepository.save(group);
+        Group savedGroup =
+                groupRepository.save(group);
 
         GroupMember member = new GroupMember();
 

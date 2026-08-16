@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 import jakarta.persistence.PrePersist;
 
 
-import java.time.LocalDateTime;
+
 import java.util.UUID;
 
 @Entity

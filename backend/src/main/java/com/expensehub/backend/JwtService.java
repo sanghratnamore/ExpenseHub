@@ -2,20 +2,24 @@ package com.expensehub.backend;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
-import io.jsonwebtoken.Claims;
 
 @Service
 public class JwtService {
 
-    private final String secret =
-            "ExpenseHubSuperSecretKeyForJWTAuthentication2026";
-
+    private final String secret;
     private final long expiration = 1000 * 60 * 60; // 1 hour
+
+    public JwtService(
+            @Value("${jwt.secret}") String secret
+    ) {
+        this.secret = secret;
+    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(
@@ -28,7 +32,11 @@ public class JwtService {
         return Jwts.builder()
                 .subject(email)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(
+                        new Date(
+                                System.currentTimeMillis() + expiration
+                        )
+                )
                 .signWith(getSigningKey())
                 .compact();
     }

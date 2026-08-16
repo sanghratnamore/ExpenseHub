@@ -1,8 +1,7 @@
 package com.expensehub.backend.controller;
 
-import com.expensehub.backend.dto.AddGroupMembersRequest;
+import com.expensehub.backend.dto.GroupResponse;
 import com.expensehub.backend.entity.Group;
-import com.expensehub.backend.entity.GroupMember;
 import com.expensehub.backend.entity.User;
 import com.expensehub.backend.exception.ResourceNotFoundException;
 import com.expensehub.backend.repository.GroupMemberRepository;
@@ -12,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -34,12 +32,13 @@ public class GroupController {
         this.userRepository = userRepository;
     }
 
-    // ==========================================
+    // =========================================================
     // GET MY GROUPS
-    // ==========================================
+    // GET /api/groups
+    // =========================================================
 
     @GetMapping
-    public ResponseEntity<List<Group>> getMyGroups(
+    public ResponseEntity<List<GroupResponse>> getMyGroups(
             Authentication authentication
     ) {
 
@@ -47,7 +46,10 @@ public class GroupController {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("User not found"));
+                        new ResourceNotFoundException(
+                                "User not found"
+                        )
+                );
 
         List<UUID> groupIds =
                 groupMemberRepository.findByUserId(user.getId())
@@ -58,76 +60,30 @@ public class GroupController {
         List<Group> groups =
                 groupRepository.findAllById(groupIds);
 
-        return ResponseEntity.ok(groups);
-    }
-
-    // ==========================================
-    // ADD MULTIPLE MEMBERS
-    // ==========================================
-
-    @PostMapping("/{groupId}/members")
-    public ResponseEntity<List<GroupMember>> addMembers(
-            @PathVariable UUID groupId,
-            @RequestBody AddGroupMembersRequest request
-    ) {
-
-        // 1. Check group exists
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Group not found"
-                        )
-                );
-
-        // 2. Validate request
-        if (request.getUserIds() == null ||
-                request.getUserIds().isEmpty()) {
-
-            throw new IllegalArgumentException(
-                    "At least one user ID is required"
-            );
-        }
-
-        // 3. Remove duplicate IDs
-        List<UUID> userIds =
-                request.getUserIds()
-                        .stream()
-                        .distinct()
+        List<GroupResponse> response =
+                groups.stream()
+                        .map(this::convertToResponse)
                         .toList();
 
-        List<GroupMember> addedMembers = new ArrayList<>();
+        return ResponseEntity.ok(response);
+    }
 
-        // 4. Add each user
-        for (UUID userId : userIds) {
+    // =========================================================
+    // CONVERT GROUP ENTITY → SAFE RESPONSE
+    // =========================================================
 
-            // Check user exists
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() ->
-                            new ResourceNotFoundException(
-                                    "User not found: " + userId
-                            )
-                    );
+    private GroupResponse convertToResponse(Group group) {
 
-            // Skip if already a member
-            if (groupMemberRepository.existsByGroupIdAndUserId(
-                    groupId,
-                    userId
-            )) {
-                continue;
-            }
+        User creator = group.getCreatedBy();
 
-            // Create membership
-            GroupMember groupMember = new GroupMember();
-
-            groupMember.setGroup(group);
-            groupMember.setUser(user);
-
-            GroupMember savedMember =
-                    groupMemberRepository.save(groupMember);
-
-            addedMembers.add(savedMember);
-        }
-
-        return ResponseEntity.ok(addedMembers);
+        return new GroupResponse(
+                group.getId(),
+                group.getName(),
+                group.getCreatedAt(),
+                group.getUpdatedAt(),
+                creator.getId(),
+                creator.getName(),
+                creator.getEmail()
+        );
     }
 }
