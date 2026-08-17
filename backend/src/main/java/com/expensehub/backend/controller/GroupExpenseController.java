@@ -9,6 +9,8 @@ import com.expensehub.backend.service.GroupExpenseService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+
+
 import java.util.List;
 import java.util.UUID;
 
@@ -35,6 +37,8 @@ public class GroupExpenseController {
             @RequestBody CreateGroupExpenseRequest request
     ) {
 
+        System.out.println(">>> CREATE EQUAL EXPENSE CONTROLLER HIT");
+
         GroupExpenseResponse response =
                 groupExpenseService.createEqualSplitExpense(
                         groupId,
@@ -43,7 +47,6 @@ public class GroupExpenseController {
 
         return ResponseEntity.ok(response);
     }
-
 
     // =========================================================
     // GET ALL GROUP EXPENSES
@@ -113,6 +116,8 @@ public class GroupExpenseController {
             @RequestBody CreateCustomGroupExpenseRequest request
     ) {
 
+        System.out.println(">>> CREATE CUSTOM EXPENSE CONTROLLER HIT");
+
         GroupExpenseResponse response =
                 groupExpenseService.createCustomSplitExpense(
                         groupId,
@@ -121,4 +126,6 @@ public class GroupExpenseController {
 
         return ResponseEntity.ok(response);
     }
+
+
 }
