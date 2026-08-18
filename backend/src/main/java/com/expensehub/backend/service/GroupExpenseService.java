@@ -76,12 +76,17 @@ public class GroupExpenseService {
             );
         }
 
-        // 3. Remove duplicate participant IDs
+        // 3. Reject duplicate participant IDs
         List<UUID> participantIds =
-                request.getParticipantIds()
-                        .stream()
-                        .distinct()
-                        .toList();
+                request.getParticipantIds();
+
+        if (participantIds.size() !=
+                participantIds.stream().distinct().count()) {
+
+            throw new IllegalArgumentException(
+                    "Duplicate participant IDs are not allowed"
+            );
+        }
 
         // 4. Find group
         Group group = groupRepository.findById(groupId)
@@ -519,22 +524,36 @@ public class GroupExpenseService {
         }
 
         // 2. Validate participants
-        if (request.getParticipants() == null ||
-                request.getParticipants().isEmpty()) {
+                if (request.getParticipants() == null ||
+                        request.getParticipants().isEmpty()) {
 
-            throw new IllegalArgumentException(
-                    "At least one participant is required"
-            );
-        }
+                    throw new IllegalArgumentException(
+                            "At least one participant is required"
+                    );
+                }
 
-        // 3. Find group
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Group not found"
-                        )
-                );
+        // 3. Reject duplicate participant IDs
+                long uniqueParticipantCount =
+                        request.getParticipants()
+                                .stream()
+                                .map(CreateCustomGroupExpenseRequest.CustomParticipant::getUserId)
+                                .distinct()
+                                .count();
 
+                if (uniqueParticipantCount != request.getParticipants().size()) {
+
+                    throw new IllegalArgumentException(
+                            "Duplicate participant IDs are not allowed"
+                    );
+                }
+
+        // 4. Find group
+                Group group = groupRepository.findById(groupId)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Group not found"
+                                )
+                        );
         // 4. Validate payer
         if (request.getPaidBy() == null) {
 

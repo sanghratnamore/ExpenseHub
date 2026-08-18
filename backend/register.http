@@ -1,8 +1,9 @@
+### Register User 2
 POST http://localhost:8080/api/auth/register
 Content-Type: application/json
 
 {
-  "name": "Test User",
-  "email": "test@example.com",
-  "password": "password123"
+  "name": "Audit User 3",
+  "email": "audituser3@example.com",
+  "password": "audit333"
 }

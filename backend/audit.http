@@ -1,0 +1,965 @@
+@token1 = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhdWRpdHVzZXIxQGV4YW1wbGUuY29tIiwiaWF0IjoxNzg3MDEyODc1LCJleHAiOjE3ODcwMTY0NzV9.mkev3ny-1dabVZ6Aj438XtqeCfMlCJjxaUx4Sh6Xid1hr8Qw-XhJZp8LS5exxvXA
+@token2 = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhdWRpdHVzZXIyQGV4YW1wbGUuY29tIiwiaWF0IjoxNzg3MDEyODk3LCJleHAiOjE3ODcwMTY0OTd9.R6Y_ZY5Ofn1Cf6akb3IBY9zQ00vvajWQq-q2mH88jhh6YbfaXM4Mxjixo_-0-WCl
+
+Audit Test Group
+ID: 719d4ebb-2852-4dbe-bfb0-361e48e672ff
+
+
+
+### Get Users
+GET http://localhost:8080/api/users
+Authorization: Bearer {{token1}}
+
+### Get Current User
+GET http://localhost:8080/api/users/me
+Authorization: Bearer {{token1}}
+
+### Create Group
+POST http://localhost:8080/api/groups
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "name": "Audit Test Group"
+}
+
+### Get Groups
+GET http://localhost:8080/api/groups
+Authorization: Bearer {{token1}}
+
+### Get Group Members
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members
+Authorization: Bearer {{token1}}
+
+### Add User 2
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/f221f59e-8e84-4850-bcdd-b2ea6db2ae9e
+Authorization: Bearer {{token1}}
+
+### Add Existing Member Again
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/f221f59e-8e84-4850-bcdd-b2ea6db2ae9e
+Authorization: Bearer {{token1}}
+
+### Get Group Members as User 2
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members
+Authorization: Bearer {{token2}}
+
+### User 2 Attempts to Add Member
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/941cc5b8-71d1-48ed-9bed-7eb8a8135a52
+Authorization: Bearer {{token2}}
+
+### User 2 Attempts to Remove Creator
+DELETE http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/941cc5b8-71d1-48ed-9bed-7eb8a8135a52
+Authorization: Bearer {{token2}}
+
+### Creator Removes Member
+DELETE http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/f221f59e-8e84-4850-bcdd-b2ea6db2ae9e
+Authorization: Bearer {{token1}}
+
+### Verify Members After Removal
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members
+Authorization: Bearer {{token1}}
+
+### Add User 2 again
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/f221f59e-8e84-4850-bcdd-b2ea6db2ae9e
+Authorization: Bearer {{token1}}
+
+### Creator Attempts to Remove Self
+DELETE http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/941cc5b8-71d1-48ed-9bed-7eb8a8135a52
+Authorization: Bearer {{token1}}
+
+### Remove Non-Member
+DELETE http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members/00000000-0000-0000-0000-000000000001
+Authorization: Bearer {{token1}}
+
+
+### Verify Group Members Before Expense Tests
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/members
+Authorization: Bearer {{token1}}
+
+### Create Equal Split Expense
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 600,
+  "description": "Test Dinner",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:05:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Get Group Balances
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token1}}
+
+### Create Full Settlement
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 300
+}
+
+### Get Balances After Full Settlement
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token2}}
+
+### Get Settlement History
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token1}}
+
+### Create Expense For Partial Settlement Test
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 600,
+  "description": "Partial Settlement Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:10:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Verify Balance Before Partial Settlement
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token2}}
+
+### Create Partial Settlement
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 100
+}
+
+### Verify Balance After Partial Settlement
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token2}}
+
+### Complete Remaining Partial Settlement
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 200
+}
+
+### Verify Final Balance
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token2}}
+
+### Get Complete Settlement History
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token1}}
+
+### Create Expense - User 2 Pays
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "amount": 400,
+  "description": "Reverse Direction Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:15:00",
+  "paidBy": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Verify Reverse Direction Balance
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token2}}
+
+### Reverse Direction Settlement
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "paidById": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "paidToId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "amount": 200
+}
+
+### Verify Reverse Settlement
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token1}}
+
+### Verify Settlement History
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token1}}
+
+### Invalid Settlement — No Debt
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "paidById": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "paidToId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "amount": 100
+}
+
+########################################################################################################################
+########################################################################################################################
+
+###Expense Validation Test
+
+### Invalid Expense — Zero Amount
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 0,
+  "description": "Invalid Zero Amount",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:20:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Invalid Expense — Negative Amount
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": -100,
+  "description": "Invalid Negative Amount",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:25:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Invalid Expense — Payer Not a Group Member
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Invalid Payer Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:30:00",
+  "paidBy": "00000000-0000-0000-0000-000000000001",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Invalid Expense — Payer Not a Group Member but it is user
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Non Member Payer Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:30:00",
+  "paidBy": "bc00ba2e-9975-41ee-b9f1-fa4a4fa3ea1d",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Invalid Expense — Participant Not a Group Member
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Non Member Participant Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:35:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+    "bc00ba2e-9975-41ee-b9f1-fa4a4fa3ea1d"
+  ]
+}
+
+### Invalid Expense — Empty Participants
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Empty Participants Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:40:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": []
+}
+
+### Invalid Expense — Duplicate Participant
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Duplicate Participant Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T00:45:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52"
+  ]
+}
+
+
+### Invalid Expense — Custom Split Duplicate Participant
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Custom Duplicate Participant Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:00:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Invalid Expense — Negative Custom Share
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Negative Share Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:15:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": -100
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 600
+    }
+  ]
+}
+
+### Invalid Expense — Custom Shares Do Not Match Total
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Invalid Share Total Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:20:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 200
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 200
+    }
+  ]
+}
+
+### Invalid Expense — Participant Not In Group
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Non Member Participant Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:25:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "bc00ba2e-9975-41ee-b9f1-fa4a4fa3ea1d",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Invalid Expense — Participant Not Found
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Nonexistent Participant Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:30:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "00000000-0000-0000-0000-000000000001",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Valid Expense — Zero Participant Share
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Zero Share Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:35:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 500
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 0
+    }
+  ]
+}
+
+### Invalid Expense — Missing Participant User ID
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Missing Participant ID Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:40:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Invalid Expense — Missing Participant Share
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Missing Share Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:45:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+    }
+  ]
+}
+
+### Invalid Expense — Missing Payer
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Missing Payer Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:50:00",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Invalid Expense — Payer Not In Group
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Non Member Payer Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T01:55:00",
+  "paidBy": "bc00ba2e-9975-41ee-b9f1-fa4a4fa3ea1d",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Invalid Expense — Payer Not Found
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Nonexistent Payer Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:00:00",
+  "paidBy": "00000000-0000-0000-0000-000000000001",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Invalid Expense — Empty Participants
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Empty Participants Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:05:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": []
+}
+
+### Invalid Expense — Zero Amount
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 0,
+  "description": "Zero Amount Custom Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:10:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 0
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 0
+    }
+  ]
+}
+
+### Invalid Expense — Negative Amount
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": -500,
+  "description": "Negative Amount Custom Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:15:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": -250
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": -250
+    }
+  ]
+}
+
+### Invalid Expense — Negative Participant Share
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Negative Participant Share Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:20:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": -100
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 600
+    }
+  ]
+}
+
+### Invalid Expense — Shares Do Not Equal Amount
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Invalid Share Total Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:25:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 200
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 200
+    }
+  ]
+}
+
+### Invalid Expense — Missing Participant User ID
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Missing Participant User ID Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:30:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": null,
+      "shareAmount": 250
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Invalid Expense — Participant Not In Group
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Non Member Participant Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:35:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 250
+    },
+    {
+      "userId": "bc00ba2e-9975-41ee-b9f1-fa4a4fa3ea1d",
+      "shareAmount": 250
+    }
+  ]
+}
+
+### Valid Custom Split Expense
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses/custom
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Valid Custom Split Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T02:40:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participants": [
+    {
+      "userId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+      "shareAmount": 300
+    },
+    {
+      "userId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+      "shareAmount": 200
+    }
+  ]
+}
+
+### Verify Custom Expense Participants
+GET http://localhost:8080/api/groups/expenses/956354d4-c8b4-49d4-8192-5b09c35c1cf9/participants
+Authorization: Bearer {{token1}}
+
+### Verify Group Balances After Custom Expense
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token1}}
+
+### Verify Group Settlements
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token1}}
+
+
+
+########################################################################################################################
+########################################################################################################################
+
+###settlement Creation
+
+
+### Valid Settlement — Audit User 2 Pays Audit User 1
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 200
+}
+
+### Verify Balances After Settlement
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token1}}
+
+### Invalid Settlement — Zero Amount
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 0
+}
+
+### Invalid Settlement — Negative Amount
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": -100
+}
+
+### Invalid Settlement — Pay Yourself
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "amount": 100
+}
+
+### Invalid Settlement — User Does Not Owe Money
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 100
+}
+
+### Create Expense For Overpayment Test
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 200,
+  "description": "Settlement Overpayment Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T03:00:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Invalid Settlement — Overpayment
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 200
+}
+
+### Invalid Settlement — Payer Not Group Member
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "paidById": "bc00ba2e-9975-41ee-b9f1-fa4a4fa3ea1d",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 50
+}
+
+### Invalid Settlement — Receiver Not Group Member
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "bc00ba2e-9975-41ee-b9f1-fa4a4fa3ea1d",
+  "amount": 50
+}
+
+### Invalid Settlement — Missing Payer ID
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 50
+}
+
+### Invalid Settlement — Missing Receiver ID
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "amount": 50
+}
+
+
+
+
+########################################################################################################################
+########################################################################################################################
+
+###Final clean end-to-end test
+
+### Final E2E — Create Equal Split Expense
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 300,
+  "description": "Final E2E Settlement Test",
+  "category": "Food",
+  "expenseDate": "2026-08-18T03:15:00",
+  "paidBy": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "participantIds": [
+    "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+    "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e"
+  ]
+}
+
+### Final E2E — Verify Balance Before Settlement
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token1}}
+
+### Final E2E — Settle Outstanding Balance
+POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
+Authorization: Bearer {{token2}}
+Content-Type: application/json
+
+{
+  "paidById": "f221f59e-8e84-4850-bcdd-b2ea6db2ae9e",
+  "paidToId": "941cc5b8-71d1-48ed-9bed-7eb8a8135a52",
+  "amount": 250
+}
+
+### Final E2E — Verify Balances After Settlement
+GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
+Authorization: Bearer {{token1}}
+

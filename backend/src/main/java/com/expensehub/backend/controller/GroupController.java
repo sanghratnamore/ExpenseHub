@@ -10,6 +10,8 @@ import com.expensehub.backend.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import com.expensehub.backend.dto.CreateGroupRequest;
+import com.expensehub.backend.service.GroupService;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,15 +23,18 @@ public class GroupController {
     private final GroupRepository groupRepository;
     private final GroupMemberRepository groupMemberRepository;
     private final UserRepository userRepository;
+    private final GroupService groupService;
 
     public GroupController(
             GroupRepository groupRepository,
             GroupMemberRepository groupMemberRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            GroupService groupService
     ) {
         this.groupRepository = groupRepository;
         this.groupMemberRepository = groupMemberRepository;
         this.userRepository = userRepository;
+        this.groupService = groupService;
     }
 
     // =========================================================
@@ -66,6 +71,28 @@ public class GroupController {
                         .toList();
 
         return ResponseEntity.ok(response);
+    }
+
+    // =========================================================
+// CREATE GROUP
+// POST /api/groups
+// =========================================================
+
+    @PostMapping
+    public ResponseEntity<GroupResponse> createGroup(
+            @RequestBody CreateGroupRequest request,
+            Authentication authentication
+    ) {
+
+        Group savedGroup =
+                groupService.createGroup(
+                        request,
+                        authentication.getName()
+                );
+
+        return ResponseEntity.ok(
+                convertToResponse(savedGroup)
+        );
     }
 
     // =========================================================
