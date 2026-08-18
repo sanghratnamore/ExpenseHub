@@ -5,6 +5,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.UUID;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -88,6 +91,26 @@ public class GlobalExceptionHandler {
                         "message", ex.getMessage() != null
                                 ? ex.getMessage()
                                 : "Internal server error"
+                ));
+    }
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex) {
+
+        if (ex.getRequiredType() == UUID.class) {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                            "status", 400,
+                            "message", "Invalid UUID format"
+                    ));
+        }
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "status", 400,
+                        "message", "Invalid parameter value"
                 ));
     }
 }

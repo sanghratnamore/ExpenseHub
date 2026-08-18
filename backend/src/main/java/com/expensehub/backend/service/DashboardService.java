@@ -5,6 +5,7 @@ import com.expensehub.backend.dto.DashboardResponse;
 import com.expensehub.backend.dto.MonthlyExpenseResponse;
 import com.expensehub.backend.entity.User;
 import com.expensehub.backend.repository.ExpenseRepository;
+import com.expensehub.backend.entity.Expense;
 
 import org.springframework.stereotype.Service;
 
@@ -45,9 +46,27 @@ public class DashboardService {
                         .plusMonths(1)
                         .atStartOfDay();
 
+        System.out.println("===== DASHBOARD DEBUG =====");
+        System.out.println("USER ID: " + user.getId());
+        System.out.println("USER EMAIL: " + user.getEmail());
+
+        List<Expense> userExpenses = expenseRepository.findByUserId(user.getId());
+
+        System.out.println("EXPENSE COUNT FROM FIND: " + userExpenses.size());
+
+        userExpenses.forEach(e -> {
+            System.out.println(
+                    "EXPENSE -> " +
+                            e.getId() +
+                            " | " +
+                            e.getAmount() +
+                            " | " +
+                            e.getUser().getId()
+            );
+        });
+
         BigDecimal totalExpenses =
                 expenseRepository.getTotalExpenses(user.getId());
-
         long expenseCount =
                 expenseRepository.getExpenseCount(user.getId());
 

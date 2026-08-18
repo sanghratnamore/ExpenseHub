@@ -36,15 +36,38 @@ public class DashboardController {
 
         String email = authentication.getName();
 
+        System.out.println("========== DASHBOARD DEBUG ==========");
+        System.out.println("JWT EMAIL : " + email);
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User not found"));
+
+        System.out.println("USER ID   : " + user.getId());
+        System.out.println("USER NAME : " + user.getName());
 
         DashboardResponse response =
                 dashboardService.getDashboard(user);
 
         return ResponseEntity.ok(response);
     }
+
+//    @GetMapping("/summary")
+//    public ResponseEntity<DashboardResponse> getDashboard(
+//            Authentication authentication
+//    ) {
+//
+//        String email = authentication.getName();
+//
+//        User user = userRepository.findByEmail(email)
+//                .orElseThrow(() ->
+//                        new ResourceNotFoundException("User not found"));
+//
+//        DashboardResponse response =
+//                dashboardService.getDashboard(user);
+//
+//        return ResponseEntity.ok(response);
+//    }
 
     @GetMapping("/categories")
     public ResponseEntity<List<CategoryExpenseResponse>> getCategoryExpenses(

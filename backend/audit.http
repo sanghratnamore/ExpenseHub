@@ -1,5 +1,5 @@
-@token1 = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhdWRpdHVzZXIxQGV4YW1wbGUuY29tIiwiaWF0IjoxNzg3MDEyODc1LCJleHAiOjE3ODcwMTY0NzV9.mkev3ny-1dabVZ6Aj438XtqeCfMlCJjxaUx4Sh6Xid1hr8Qw-XhJZp8LS5exxvXA
-@token2 = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhdWRpdHVzZXIyQGV4YW1wbGUuY29tIiwiaWF0IjoxNzg3MDEyODk3LCJleHAiOjE3ODcwMTY0OTd9.R6Y_ZY5Ofn1Cf6akb3IBY9zQ00vvajWQq-q2mH88jhh6YbfaXM4Mxjixo_-0-WCl
+@token1 = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhdWRpdHVzZXIxQGV4YW1wbGUuY29tIiwiaWF0IjoxNzg3MDE2MjgxLCJleHAiOjE3ODcwMTk4ODF9.nYTusL3Nsrs3Z8DOA6sbNV5hxv5aS_nX6g-b0DQiHiixbdLsP7NnNuHjJlISQa2v
+@token2 = eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhdWRpdHVzZXIyQGV4YW1wbGUuY29tIiwiaWF0IjoxNzg3MDE1ODAxLCJleHAiOjE3ODcwMTk0MDF9.QRafbYB4HQXiQ_OerC5WmvKAS2wRrilYK4P5Z4rDWPQrzHuISkYHIXQeAFi5dZsX
 
 Audit Test Group
 ID: 719d4ebb-2852-4dbe-bfb0-361e48e672ff
@@ -944,9 +944,6 @@ Content-Type: application/json
   ]
 }
 
-### Final E2E — Verify Balance Before Settlement
-GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
-Authorization: Bearer {{token1}}
 
 ### Final E2E — Settle Outstanding Balance
 POST http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/settlements
@@ -963,3 +960,214 @@ Content-Type: application/json
 GET http://localhost:8080/api/groups/719d4ebb-2852-4dbe-bfb0-361e48e672ff/balances
 Authorization: Bearer {{token1}}
 
+########################################################################################################################
+########################################################################################################################
+
+###Personal Expense Audit
+
+### Creating personal Expense
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "category": "Food",
+  "description": "Personal Expense Test",
+  "expenseDate": "2026-08-18T10:00:00"
+}
+
+### Get All Personal Expenses
+GET http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+
+### Get Personal Expense By ID
+GET http://localhost:8080/api/expenses/dd27df53-f0bf-425e-8bd7-71fd9f9d5506
+Authorization: Bearer {{token1}}
+
+### Update Personal Expense
+PUT http://localhost:8080/api/expenses/dd27df53-f0bf-425e-8bd7-71fd9f9d5506
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 750,
+  "category": "Shopping",
+  "description": "Updated Personal Expense Test",
+  "expenseDate": "2026-08-18T11:00:00"
+}
+
+### Delete Personal Expense
+DELETE http://localhost:8080/api/expenses/5c98bea6-b5af-4fb3-bb2a-5e69b78adf5f
+Authorization: Bearer {{token1}}
+
+### Verify Deleted Personal Expense
+GET http://localhost:8080/api/expenses/5c98bea6-b5af-4fb3-bb2a-5e69b78adf5f
+Authorization: Bearer {{token1}}
+
+### Invalid Personal Expense — Zero Amount
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 0,
+  "category": "Food",
+  "description": "Invalid Zero Amount Test",
+  "expenseDate": "2026-08-18T12:00:00"
+}
+
+### Invalid Personal Expense — Missing Amount
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "category": "Food",
+  "description": "Missing Amount Test",
+  "expenseDate": "2026-08-18T12:05:00"
+}
+
+### Invalid Personal Expense — Missing Category
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "description": "Missing Category Test",
+  "expenseDate": "2026-08-18T12:10:00"
+}
+
+### Invalid Personal Expense — Missing Description
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "category": "Food",
+  "expenseDate": "2026-08-18T12:15:00"
+}
+
+### Invalid Personal Expense — Missing Expense Date
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "category": "Food",
+  "description": "Missing Expense Date Test"
+}
+
+### Invalid Personal Expense — Negative Amount
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": -100,
+  "category": "Food",
+  "description": "Negative Amount Test",
+  "expenseDate": "2026-08-18T12:20:00"
+}
+
+### Invalid Personal Expense — Blank Description
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "category": "Food",
+  "description": "",
+  "expenseDate": "2026-08-18T12:25:00"
+}
+
+### Invalid Personal Expense — Blank Category
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "category": "",
+  "description": "Blank Category Test",
+  "expenseDate": "2026-08-18T12:30:00"
+}
+
+### Invalid Personal Expense — Blank Expense Date
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "category": "Food",
+  "description": "Blank Expense Date Test",
+  "expenseDate": ""
+}
+
+### Invalid Personal Expense — Expense Not Found
+GET http://localhost:8080/api/expenses/00000000-0000-0000-0000-000000000999
+Authorization: Bearer {{token1}}
+
+### Invalid Personal Expense — Malformed Expense ID
+GET http://localhost:8080/api/expenses/not-a-valid-uuid
+Authorization: Bearer {{token1}}
+
+### Invalid Personal Expense — Malformed ID on DELETE
+DELETE http://localhost:8080/api/expenses/not-a-valid-uuid
+Authorization: Bearer {{token1}}
+
+### Personal Expense Security — Missing Authentication
+GET http://localhost:8080/api/expenses
+Content-Type: application/json
+
+### Personal Expense Security — Create Without Authentication
+POST http://localhost:8080/api/expenses
+Content-Type: application/json
+
+{
+  "amount": 500,
+  "category": "Food",
+  "description": "Unauthorized Create Test",
+  "expenseDate": "2026-08-18T10:00:00"
+}
+
+
+
+########################################################################################################################
+########################################################################################################################
+
+
+###Dashboard audit.
+
+### Dashboard Summary — Authenticated User
+GET http://localhost:8080/api/dashboard/summary
+Authorization: Bearer {{token1}}
+
+### Dashboard Debug — Current User
+GET http://localhost:8080/api/auth/me
+Authorization: Bearer {{token1}}
+
+### Creating Expense
+POST http://localhost:8080/api/expenses
+Authorization: Bearer {{token1}}
+Content-Type: application/json
+
+{
+  "amount": 1000,
+  "category": "Food",
+  "description": "Dashboard Test Expense",
+  "expenseDate": "2026-08-18T10:00:00"
+}
+
+### Dashboard Category Expense Summary
+GET http://localhost:8080/api/dashboard/categories
+Authorization: Bearer {{token1}}
+
+### Dashboard Monthly Expense Summary
+GET http://localhost:8080/api/dashboard/monthly
+Authorization: Bearer {{token1}}
