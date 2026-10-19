@@ -9,14 +9,19 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.expensehub.dto.LoginRequest;
 import com.expensehub.dto.LoginResponse;
+import com.expensehub.security.JwtService;
+import com.expensehub.entity.Category;
+import com.expensehub.repository.CategoryRepository;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
+    private final JwtService jwtService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
     public RegisterResponse registerUser(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -31,6 +36,7 @@ public class UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
+        createDefaultCategories(savedUser);
 
         return RegisterResponse.builder()
                 .id(savedUser.getId())
@@ -55,12 +61,32 @@ public class UserService {
             throw new RuntimeException("Invalid email or password");
         }
 
+        String token = jwtService.generateToken(user.getEmail());
+
         return LoginResponse.builder()
+                .token(token)
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
                 .message("Login successful")
                 .build();
+    }
+
+    private void createDefaultCategories(User user) {
+        List<Category> defaultCategories = List.of(
+                Category.builder().name("Food").type("EXPENSE").user(user).build(),
+                Category.builder().name("Travel").type("EXPENSE").user(user).build(),
+                Category.builder().name("Shopping").type("EXPENSE").user(user).build(),
+                Category.builder().name("Bills").type("EXPENSE").user(user).build(),
+                Category.builder().name("Entertainment").type("EXPENSE").user(user).build(),
+                Category.builder().name("Health").type("EXPENSE").user(user).build(),
+                Category.builder().name("Other").type("EXPENSE").user(user).build(),
+                Category.builder().name("Salary").type("INCOME").user(user).build(),
+                Category.builder().name("Freelance").type("INCOME").user(user).build(),
+                Category.builder().name("Other Income").type("INCOME").user(user).build()
+        );
+
+        categoryRepository.saveAll(defaultCategories);
     }
 }

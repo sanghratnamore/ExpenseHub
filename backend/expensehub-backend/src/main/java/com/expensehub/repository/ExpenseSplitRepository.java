@@ -1,4 +1,10 @@
 package com.expensehub.repository;
 
-public class ExpenseSplitRepository {
+import com.expensehub.entity.ExpenseSplit;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface ExpenseSplitRepository extends JpaRepository<ExpenseSplit, Long> {
+    List<ExpenseSplit> findByGroupExpenseGroupId(Long groupId);
 }
