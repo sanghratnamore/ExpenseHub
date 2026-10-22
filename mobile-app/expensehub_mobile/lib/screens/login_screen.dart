@@ -18,6 +18,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  String? emailError;
+  String? passwordError;
+
   bool hidePassword = true;
   bool isLoading = false;
 
@@ -32,6 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
+      emailError = null;
+      passwordError = null;
       isLoading = true;
     });
 
@@ -64,23 +69,39 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (error) {
       if (!mounted) return;
 
-      String message = 'Invalid email or password. Please try again.';
+      final errorText = error.toString().toLowerCase();
 
-      final errorText = error.toString();
-
-      if (errorText.contains('invalid-credential') ||
-          errorText.contains('wrong-password') ||
-          errorText.contains('user-not-found')) {
-        message = 'Invalid email or password. Please try again.';
-      } else if (errorText.contains('invalid-email')) {
-        message = 'Please enter a valid email address.';
-      } else if (errorText.contains('user-disabled')) {
-        message = 'This account has been disabled.';
-      } else if (errorText.contains('network-request-failed')) {
-        message = 'No internet connection. Please try again.';
+      if (errorText.contains('email is not registered')) {
+        setState(() {
+          emailError = 'This email is not registered';
+          passwordError = null;
+        });
+      } else if (errorText.contains('invalid password')) {
+        setState(() {
+          emailError = null;
+          passwordError = 'Invalid password';
+        });
+      } else if (errorText.contains('invalid-email') ||
+          errorText.contains('please enter a valid email')) {
+        setState(() {
+          emailError = 'Please enter a valid email address';
+          passwordError = null;
+        });
+      } else if (errorText.contains('network-request-failed') ||
+          errorText.contains('socketexception') ||
+          errorText.contains('connection refused')) {
+        showAppMessage(
+          context,
+          message: 'No internet connection. Please try again.',
+          isError: true,
+        );
+      } else {
+        showAppMessage(
+          context,
+          message: 'Something went wrong. Please try again.',
+          isError: true,
+        );
       }
-
-      showAppMessage(context, message: message, isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -97,10 +118,13 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back),
-        ),
+        automaticallyImplyLeading: false,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+              )
+            : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
@@ -130,6 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: 'Email address',
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
+                errorText: emailError,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter your email';
@@ -145,6 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 hintText: 'Password',
                 icon: Icons.lock_outline,
                 obscureText: hidePassword,
+                errorText: passwordError,
                 suffixIcon: IconButton(
                   onPressed: () {
                     setState(() {
@@ -250,6 +276,7 @@ class _AuthField extends StatelessWidget {
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final String? Function(String?) validator;
+  final String? errorText;
 
   const _AuthField({
     required this.controller,
@@ -259,6 +286,7 @@ class _AuthField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.keyboardType,
+    this.errorText,
   });
 
   @override
@@ -272,6 +300,7 @@ class _AuthField extends StatelessWidget {
         hintText: hintText,
         prefixIcon: Icon(icon),
         suffixIcon: suffixIcon,
+        errorText: errorText,
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(

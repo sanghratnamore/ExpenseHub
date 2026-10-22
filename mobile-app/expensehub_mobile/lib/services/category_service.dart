@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+
 import '../models/category.dart';
 import 'auth_service.dart';
 
@@ -31,5 +33,83 @@ class CategoryService {
     throw Exception(
       'Failed to load categories: ${response.statusCode} ${response.body}',
     );
+  }
+
+  Future<Category> createCategory({
+    required String name,
+    required String type,
+    required int userId,
+  }) async {
+    final token = await authService.getToken();
+
+    if (token == null) {
+      throw Exception('Please log in again');
+    }
+
+    final response = await http.post(
+      Uri.parse(baseUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'name': name, 'type': type, 'userId': userId}),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return Category.fromJson(jsonDecode(response.body));
+    }
+
+    throw Exception(
+      'Failed to create category: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  Future<Category> updateCategory({
+    required int categoryId,
+    required String name,
+    required String type,
+    required int userId,
+  }) async {
+    final token = await authService.getToken();
+
+    if (token == null) {
+      throw Exception('Please log in again');
+    }
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/$categoryId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'name': name, 'type': type, 'userId': userId}),
+    );
+
+    if (response.statusCode == 200) {
+      return Category.fromJson(jsonDecode(response.body));
+    }
+
+    throw Exception(
+      'Failed to update category: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  Future<void> deleteCategory({required int categoryId}) async {
+    final token = await authService.getToken();
+
+    if (token == null) {
+      throw Exception('Please log in again');
+    }
+
+    final response = await http.delete(
+      Uri.parse('$baseUrl/$categoryId'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception(
+        'Failed to delete category: ${response.statusCode} ${response.body}',
+      );
+    }
   }
 }

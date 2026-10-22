@@ -8,7 +8,7 @@ import 'auth_service.dart';
 class ExpenseService {
   static const String baseUrl = 'http://10.0.2.2:8080/api/transactions';
   final AuthService authService = AuthService();
-
+  
   Future<List<Expense>> getExpenses() async {
     final token = await authService.getToken();
 
@@ -24,9 +24,15 @@ class ExpenseService {
       },
     );
 
+    
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => Expense.fromJson(item)).toList();
+    }
+
+    if (response.statusCode == 401) {
+      await authService.logout();
+      throw Exception('Session expired. Please log in again.');
     }
 
     throw Exception('Failed to load expenses: ${response.statusCode}');

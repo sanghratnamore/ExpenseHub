@@ -94,6 +94,33 @@ class AuthService {
     await _storage.delete(key: 'user_email');
   }
 
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw Exception('Not logged in');
+    }
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/change-password'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      }),
+    );
+
+    return _handleResponse(response);
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     final body = jsonDecode(response.body);
 

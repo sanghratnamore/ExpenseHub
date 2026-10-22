@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import 'reports_screen.dart';
 import 'category_details_screen.dart';
 import '../services/auth_service.dart';
 import '../models/expense.dart';
@@ -22,6 +23,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String? errorMessage;
 
   int selectedMonth = DateTime.now().month;
+  int selectedYear = DateTime.now().year;
 
   double monthlyBudget = 20000;
 
@@ -171,7 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   List<Expense> getMonthExpenses(int month) {
-    final year = DateTime.now().year;
+    final year = selectedYear;
 
     return expenses.where((expense) {
       final date = DateTime.tryParse(expense.date);
@@ -212,8 +214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Map<int, double> getYearlyTotals(String type) {
-    final year = DateTime.now().year;
-
+    final year = selectedYear;
     final data = <int, double>{};
 
     for (var month = 1; month <= 12; month++) {
@@ -237,16 +238,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void changeMonth(int change) {
-    var newMonth = selectedMonth + change;
+    final now = DateTime.now();
 
-    if (newMonth < 1) newMonth = 12;
-    if (newMonth > 12) newMonth = 1;
+    var newMonth = selectedMonth + change;
+    var newYear = selectedYear;
+
+    if (newMonth < 1) {
+      newMonth = 12;
+      newYear--;
+    }
+
+    if (newMonth > 12) {
+      newMonth = 1;
+      newYear++;
+    }
+
+    // Block future months
+    final isNewMonthInFuture =
+        newYear > now.year || (newYear == now.year && newMonth > now.month);
+
+    if (isNewMonthInFuture) return;
+
+    final yearlyExpenses = getYearlyTotals('EXPENSE');
+    final yearlyIncome = getYearlyTotals('INCOME');
+
+    final yearlySavings = yearlyIncome.map(
+      (month, income) => MapEntry(month, income - yearlyExpenses[month]!),
+    );
+
+    final expenseEntries = yearlyExpenses.entries
+        .where((entry) => entry.value > 0)
+        .toList();
+
+    final incomeEntries = yearlyIncome.entries
+        .where((entry) => entry.value > 0)
+        .toList();
+
+    final savingsEntries = yearlySavings.entries
+        .where((entry) => entry.value > 0)
+        .toList();
+
+    final expenseIndex = expenseEntries.indexWhere(
+      (entry) => entry.key == newMonth,
+    );
+
+    final incomeIndex = incomeEntries.indexWhere(
+      (entry) => entry.key == newMonth,
+    );
+
+    final savingsIndex = savingsEntries.indexWhere(
+      (entry) => entry.key == newMonth,
+    );
 
     setState(() {
       selectedMonth = newMonth;
-      selectedYearExpenseIndex = -1;
-      selectedIncomeIndex = -1;
-      selectedSavingsIndex = -1;
+      selectedYear = newYear;
+
+      selectedYearExpenseIndex = expenseIndex;
+      selectedIncomeIndex = incomeIndex;
+      selectedSavingsIndex = savingsIndex;
     });
   }
 
@@ -256,12 +306,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final monthIncome = getTotalForMonth(selectedMonth, 'INCOME');
 
-    final monthSavings = monthIncome - monthExpense;
-
     final budgetUsed = monthlyBudget == 0
         ? 0.0
         : (monthExpense / monthlyBudget).clamp(0.0, 1.0);
 
+    final budgetLeft = monthlyBudget - monthExpense;
+
+    final now = DateTime.now();
+
+    final daysInMonth = DateTime(selectedYear, selectedMonth + 1, 0).day;
+
+    final daysLeft = selectedYear == now.year && selectedMonth == now.month
+        ? daysInMonth - now.day
+        : daysInMonth;
+
+    final dailySafeSpend = daysLeft <= 0 ? 0.0 : budgetLeft / daysLeft;
     final expenseCategories = getCategoryTotals(selectedMonth, 'EXPENSE');
 
     final incomeCategories = getCategoryTotals(selectedMonth, 'INCOME');
@@ -285,7 +344,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(onPressed: loadExpenses, icon: const Icon(Icons.refresh)),
+          MonthArrows(
+            month: selectedMonth,
+            year: selectedYear,
+            onChanged: changeMonth,
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            tooltip: 'Monthly report',
+            icon: const Icon(Icons.bar_chart),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ReportsScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: isLoading
@@ -298,12 +373,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
                 children: [
                   // Budget card
-                  _CategoryProgressCard(
-                    title: 'Monthly budget',
-                    amount: monthExpense,
+                  _BudgetCard(
+                    spent: monthExpense,
+                    budget: monthlyBudget,
                     percentage: budgetUsed,
-                    color: colors.first,
+                    onEdit: openBudgetSheet,
                   ),
+                  const SizedBox(height: 14),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _SummaryBox(
+                          title: 'Budget left',
+                          value: '₹${budgetLeft.toStringAsFixed(0)}',
+                          color: budgetLeft >= 0 ? Colors.green : Colors.red,
+                          icon: Icons.account_balance_wallet,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _SummaryBox(
+                          title: 'Daily safe spend',
+                          value: '₹${dailySafeSpend.toStringAsFixed(0)}',
+                          color: Colors.blue,
+                          icon: Icons.today,
+                        ),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 28),
 
                   // Expense categories
@@ -316,37 +415,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (expenseCategories.isEmpty)
                     _EmptyCard(message: 'No expenses this month')
                   else
-                    ...expenseCategories.entries.map((entry) {
-                      final percentage = monthExpense == 0
-                          ? 0.0
-                          : entry.value / monthExpense;
-
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CategoryDetailsScreen(
-                                category: entry.key,
-                                month: selectedMonth,
-                                expenses: getMonthExpenses(selectedMonth),
-                              ),
-                            ),
-                          );
-                        },
-                        child: _CategoryProgressCard(
-                          title: entry.key,
-                          amount: entry.value,
-                          percentage: percentage,
-                          color:
-                              colors[expenseCategories.keys.toList().indexOf(
-                                    entry.key,
-                                  ) %
-                                  colors.length],
-                        ),
-                      );
-                    }),
-
+                    _CategoryScrollCard(
+                      categories: expenseCategories,
+                      total: monthExpense,
+                      colors: colors,
+                      isIncome: false,
+                      selectedMonth: selectedMonth,
+                      monthExpenses: getMonthExpenses(selectedMonth),
+                    ),
                   const SizedBox(height: 28),
 
                   // Income categories
@@ -359,48 +435,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   if (incomeCategories.isEmpty)
                     _EmptyCard(message: 'No income this month')
                   else
-                    ...incomeCategories.entries.map((entry) {
-                      final percentage = monthIncome == 0
-                          ? 0.0
-                          : entry.value / monthIncome;
-
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CategoryDetailsScreen(
-                                category: entry.key,
-                                month: selectedMonth,
-                                expenses: getMonthExpenses(selectedMonth),
-                                isIncome: true,
-                              ),
-                            ),
-                          );
-                        },
-                        child: _CategoryProgressCard(
-                          title: entry.key,
-                          amount: entry.value,
-                          percentage: percentage,
-                          color:
-                              colors[incomeCategories.keys.toList().indexOf(
-                                    entry.key,
-                                  ) %
-                                  colors.length],
-                        ),
-                      );
-                    }),
+                    _CategoryScrollCard(
+                      categories: incomeCategories,
+                      total: monthIncome,
+                      colors: colors,
+                      isIncome: true,
+                      selectedMonth: selectedMonth,
+                      monthExpenses: getMonthExpenses(selectedMonth),
+                    ),
                   const SizedBox(height: 14),
+
+                  // Yearly expense pie
 
                   // Yearly expense pie
                   _ChartCard(
                     title: 'Yearly expenses',
                     subtitle: 'Tap a month slice',
-                    trailing: _MonthArrows(
-                      month: selectedMonth,
-                      onChanged: changeMonth,
-                    ),
                     child: _InteractivePie(
                       data: yearlyExpenses,
                       colors: colors,
@@ -519,12 +569,15 @@ class _CategoryProgressCard extends StatelessWidget {
   final double amount;
   final double percentage;
   final Color color;
+  final Widget? trailing;
 
   const _CategoryProgressCard({
+    super.key,
     required this.title,
     required this.amount,
     required this.percentage,
     required this.color,
+    this.trailing,
   });
 
   @override
@@ -577,6 +630,7 @@ class _CategoryProgressCard extends StatelessWidget {
                 '₹${amount.toStringAsFixed(0)}',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
+              if (trailing != null) ...[const SizedBox(width: 8), trailing!],
             ],
           ),
           const SizedBox(height: 16),
@@ -595,11 +649,23 @@ class _CategoryProgressCard extends StatelessWidget {
   }
 }
 
-class _MonthArrows extends StatelessWidget {
+class MonthArrows extends StatelessWidget {
   final int month;
+  final int year;
   final ValueChanged<int> onChanged;
 
-  const _MonthArrows({required this.month, required this.onChanged});
+  const MonthArrows({
+    super.key,
+    required this.month,
+    required this.year,
+    required this.onChanged,
+  });
+
+  bool get isCurrentMonth {
+    final now = DateTime.now();
+
+    return year == now.year && month == now.month;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -619,7 +685,7 @@ class _MonthArrows extends StatelessWidget {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(16),
@@ -627,21 +693,43 @@ class _MonthArrows extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: () => onChanged(-1),
-            icon: const Icon(Icons.chevron_left, size: 20),
+          ArrowButton(icon: Icons.chevron_left, onTap: () => onChanged(-1)),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: Text(
+              key: ValueKey('$month-$year'),
+              '${months[month - 1]} $year',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
           ),
-          Text(
-            months[month - 1],
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: () => onChanged(1),
-            icon: const Icon(Icons.chevron_right, size: 20),
+          ArrowButton(
+            icon: Icons.chevron_right,
+            onTap: isCurrentMonth ? null : () => onChanged(1),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class ArrowButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const ArrowButton({super.key, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(
+          icon,
+          size: 18,
+          color: onTap == null ? Colors.grey : Colors.black87,
+        ),
       ),
     );
   }
@@ -667,7 +755,14 @@ class _ChartCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -723,6 +818,10 @@ class _InteractivePie extends StatelessWidget {
     required this.onTouch,
   });
 
+  List<Color> getGradientColors(Color baseColor) {
+    return [baseColor, baseColor.withValues(alpha: 0.55)];
+  }
+
   @override
   Widget build(BuildContext context) {
     final entries = data.entries.where((entry) => entry.value > 0).toList();
@@ -757,14 +856,14 @@ class _InteractivePie extends StatelessWidget {
     return Column(
       children: [
         SizedBox(
-          height: 250,
+          height: 260,
           child: Stack(
             alignment: Alignment.center,
             children: [
               PieChart(
                 PieChartData(
-                  sectionsSpace: 3,
-                  centerSpaceRadius: 68,
+                  sectionsSpace: 4,
+                  centerSpaceRadius: 72,
                   startDegreeOffset: -90,
                   pieTouchData: PieTouchData(
                     touchCallback: (event, response) {
@@ -782,12 +881,12 @@ class _InteractivePie extends StatelessWidget {
                   ),
                   sections: entries.asMap().entries.map((entry) {
                     final index = entry.key;
-
                     final month = entry.value.key;
-
                     final amount = entry.value.value;
 
                     final isSelected = selectedIndex == index;
+
+                    final baseColor = colors[index % colors.length];
 
                     final percentage = centerAmount == 0
                         ? 0.0
@@ -795,8 +894,13 @@ class _InteractivePie extends StatelessWidget {
 
                     return PieChartSectionData(
                       value: amount,
-                      color: colors[index % colors.length],
-                      radius: isSelected ? 82 : 60,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: getGradientColors(baseColor),
+                      ),
+                      radius: isSelected ? 84 : 62,
+                      cornerRadius: 12,
                       title: '${percentage.toStringAsFixed(0)}%',
                       titleStyle: const TextStyle(
                         color: Colors.white,
@@ -820,6 +924,7 @@ class _InteractivePie extends StatelessWidget {
                       style: TextStyle(
                         color: Colors.grey.shade700,
                         fontSize: 12,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -831,7 +936,7 @@ class _InteractivePie extends StatelessWidget {
                       '₹${selectedAmount.toStringAsFixed(0)}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 22,
+                        fontSize: 24,
                       ),
                     ),
                   ),
@@ -851,16 +956,16 @@ class _InteractivePie extends StatelessWidget {
         const SizedBox(height: 20),
 
         Wrap(
-          spacing: 14,
+          spacing: 10,
           runSpacing: 10,
           children: entries.asMap().entries.map((entry) {
             final index = entry.key;
-
             final month = entry.value.key;
-
             final amount = entry.value.value;
 
             final isSelected = selectedIndex == index;
+
+            final baseColor = colors[index % colors.length];
 
             return GestureDetector(
               onTap: () => onTouch(isSelected ? -1 : index),
@@ -871,10 +976,25 @@ class _InteractivePie extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? colors[index % colors.length].withValues(alpha: 0.15)
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(14),
+                  gradient: isSelected
+                      ? LinearGradient(
+                          colors: [
+                            baseColor,
+                            baseColor.withValues(alpha: 0.65),
+                          ],
+                        )
+                      : null,
+                  color: isSelected ? null : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: baseColor.withValues(alpha: 0.30),
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
+                          ),
+                        ]
+                      : [],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -883,7 +1003,7 @@ class _InteractivePie extends StatelessWidget {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: colors[index % colors.length],
+                        color: isSelected ? Colors.white : baseColor,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -893,14 +1013,16 @@ class _InteractivePie extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 12,
+                        color: isSelected ? Colors.white : Colors.black87,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '₹${amount.toStringAsFixed(0)}',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
                         fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected ? Colors.white : Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -932,6 +1054,308 @@ class _EmptyCard extends StatelessWidget {
         message,
         textAlign: TextAlign.center,
         style: TextStyle(color: Colors.grey.shade600),
+      ),
+    );
+  }
+}
+
+class _CategoryScrollCard extends StatelessWidget {
+  final Map<String, double> categories;
+  final double total;
+  final List<Color> colors;
+  final bool isIncome;
+  final int selectedMonth;
+  final List<Expense> monthExpenses;
+
+  const _CategoryScrollCard({
+    required this.categories,
+    required this.total,
+    required this.colors,
+    required this.isIncome,
+    required this.selectedMonth,
+    required this.monthExpenses,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = categories.entries.toList();
+
+    return Container(
+      height: 360,
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(
+          color: isIncome ? Colors.green.shade100 : Colors.red.shade100,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: isIncome ? Colors.green.shade50 : Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isIncome ? Icons.trending_up : Icons.trending_down,
+                  size: 16,
+                  color: isIncome ? Colors.green : Colors.red,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                isIncome ? 'Income categories' : 'Expense categories',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Scroll for more',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: entries.length,
+              itemBuilder: (context, index) {
+                final entry = entries[index];
+
+                final percentage = total == 0 ? 0.0 : entry.value / total;
+
+                final color = colors[index % colors.length];
+
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CategoryDetailsScreen(
+                          category: entry.key,
+                          month: selectedMonth,
+                          expenses: monthExpenses,
+                          isIncome: isIncome,
+                        ),
+                      ),
+                    );
+                  },
+                  child: _CategoryProgressCard(
+                    title: entry.key,
+                    amount: entry.value,
+                    percentage: percentage,
+                    color: color,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryBox extends StatelessWidget {
+  final String title;
+  final String value;
+  final Color color;
+  final IconData icon;
+
+  const _SummaryBox({
+    required this.title,
+    required this.value,
+    required this.color,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetCard extends StatelessWidget {
+  final double spent;
+  final double budget;
+  final double percentage;
+  final VoidCallback onEdit;
+
+  const _BudgetCard({
+    required this.spent,
+    required this.budget,
+    required this.percentage,
+    required this.onEdit,
+  });
+
+  Color get progressColor {
+    if (percentage >= 1) {
+      return Colors.red.shade400;
+    }
+
+    if (percentage >= 0.8) {
+      return Colors.orange.shade600;
+    }
+
+    return Colors.teal.shade600;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FBF9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.teal.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.teal.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.account_balance_wallet,
+                  size: 15,
+                  color: Colors.teal.shade700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Monthly Budget',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F766E),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined),
+                iconSize: 17,
+                color: Colors.teal.shade600,
+                tooltip: 'Edit budget',
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '₹${spent.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF134E4A),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  'of ₹${budget.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.teal.shade700.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${(percentage * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: progressColor,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          ClipRRect(
+            borderRadius: BorderRadius.circular(100),
+            child: LinearProgressIndicator(
+              value: percentage,
+              minHeight: 6,
+              backgroundColor: Colors.teal.shade50,
+              valueColor: AlwaysStoppedAnimation(progressColor),
+            ),
+          ),
+        ],
       ),
     );
   }

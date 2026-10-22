@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
+
 import 'login_screen.dart';
 import 'register_screen.dart';
+
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
+
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -15,39 +21,57 @@ class WelcomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color.fromARGB(255, 198, 235, 33), Color.fromARGB(255, 74, 104, 111), Color(0xFF334155)],
+            colors: [
+              Color.fromARGB(255, 198, 235, 33),
+              Color.fromARGB(255, 74, 104, 111),
+              Color(0xFF334155),
+            ],
           ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(50),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 20,
+            ),
             child: Column(
               children: [
-                Image.asset(
-                  'assets/images/Shell_logo.png',
-                  height:350,
-                  fit: BoxFit.contain,
+                Expanded(
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/Shell_logo.png',
+                      height: screenHeight * 0.32,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                 ),
 
-                const SizedBox(height: 36),
 
                 Text(
                   'Track expenses, manage income,\nand understand where your money goes.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.75),
-                    fontSize: 16,
+                    fontSize: 15,
                     height: 1.5,
                   ),
                 ),
 
-                const SizedBox(height: 44),
+
+                const SizedBox(height: 24),
+
 
                 Row(
                   children: [
-                    _FeatureCard(icon: Icons.pie_chart_outline, title: 'Track'),
+                    _FeatureCard(
+                      icon: Icons.pie_chart_outline,
+                      title: 'Track',
+                    ),
                     const SizedBox(width: 12),
-                    _FeatureCard(icon: Icons.savings_outlined, title: 'Save'),
+                    _FeatureCard(
+                      icon: Icons.savings_outlined,
+                      title: 'Save',
+                    ),
                     const SizedBox(width: 12),
                     _FeatureCard(
                       icon: Icons.insights_outlined,
@@ -56,7 +80,9 @@ class WelcomeScreen extends StatelessWidget {
                   ],
                 ),
 
-                const Spacer(),
+
+                const SizedBox(height: 28),
+
 
                 SizedBox(
                   width: double.infinity,
@@ -72,7 +98,9 @@ class WelcomeScreen extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF0F172A),
-                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
@@ -87,7 +115,9 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                 ),
 
+
                 const SizedBox(height: 14),
+
 
                 SizedBox(
                   width: double.infinity,
@@ -95,15 +125,20 @@ class WelcomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const LoginScreen(),
+                        ),
                       );
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: BorderSide(
-                        color: Colors.white.withValues(alpha: 0.35),
+                        color:
+                            Colors.white.withValues(alpha: 0.35),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 18,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(18),
                       ),
@@ -126,11 +161,17 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
+
 class _FeatureCard extends StatelessWidget {
   final IconData icon;
   final String title;
 
-  const _FeatureCard({required this.icon, required this.title});
+
+  const _FeatureCard({
+    required this.icon,
+    required this.title,
+  });
+
 
   @override
   Widget build(BuildContext context) {
@@ -140,11 +181,17 @@ class _FeatureCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.07),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.white, size: 26),
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 26,
+            ),
             const SizedBox(height: 8),
             Text(
               title,

@@ -18,6 +18,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
+  String? nameError;
+  String? emailError;
+  String? passwordError;
+
   bool hidePassword = true;
   bool isLoading = false;
 
@@ -33,6 +37,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
+      nameError = null;
+      emailError = null;
+      passwordError = null;
       isLoading = true;
     });
 
@@ -56,19 +63,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (error) {
       if (!mounted) return;
 
-      String message = 'Something went wrong. Please try again.';
+      final errorText = error.toString().toLowerCase();
 
-      if (error.toString().contains('email-already-in-use')) {
-        message = 'This email is already registered. Please log in instead.';
-      } else if (error.toString().contains('weak-password')) {
-        message = 'Please use a stronger password with at least 6 characters.';
-      } else if (error.toString().contains('invalid-email')) {
-        message = 'Please enter a valid email address.';
-      } else if (error.toString().contains('network-request-failed')) {
-        message = 'No internet connection. Please try again.';
+      if (errorText.contains('email is already registered')) {
+        setState(() {
+          emailError = 'This email is already registered';
+          passwordError = null;
+        });
+      } else if (errorText.contains('weak-password') ||
+          errorText.contains('password must be at least 6')) {
+        setState(() {
+          emailError = null;
+          passwordError =
+              'Please use a stronger password with at least 6 characters';
+        });
+      } else if (errorText.contains('invalid-email') ||
+          errorText.contains('please enter a valid email')) {
+        setState(() {
+          emailError = 'Please enter a valid email address';
+          passwordError = null;
+        });
+      } else if (errorText.contains('network-request-failed') ||
+          errorText.contains('socketexception') ||
+          errorText.contains('connection refused')) {
+        showAppMessage(
+          context,
+          message: 'No internet connection. Please try again.',
+          isError: true,
+        );
+      } else {
+        showAppMessage(
+          context,
+          message: 'Something went wrong. Please try again.',
+          isError: true,
+        );
       }
-
-      showAppMessage(context, message: message, isError: true);
     } finally {
       if (mounted) {
         setState(() {
@@ -85,10 +114,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back),
-        ),
+        automaticallyImplyLeading: false,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+              )
+            : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
@@ -117,6 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: nameController,
                 hintText: 'Full name',
                 icon: Icons.person_outline,
+                errorText: nameError,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter your name';
@@ -132,21 +165,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 hintText: 'Email address',
                 icon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
+                errorText: emailError,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Enter your email';
                   }
+
+                  final emailRegex = RegExp(
+                    r'^[\w\.\-+]+@([\w\-]+\.)+[\w\-]{2,}$',
+                  );
+
+                  if (!emailRegex.hasMatch(value.trim())) {
+                    return 'Please enter a valid email address';
+                  }
+
                   return null;
                 },
               ),
 
               const SizedBox(height: 18),
-
               _RegisterField(
                 controller: passwordController,
                 hintText: 'Password',
                 icon: Icons.lock_outline,
                 obscureText: hidePassword,
+                errorText: passwordError,
                 suffixIcon: IconButton(
                   onPressed: () {
                     setState(() {
@@ -164,15 +207,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Enter a password';
                   }
-
                   if (value.length < 6) {
                     return 'Use at least 6 characters';
                   }
-
                   return null;
                 },
               ),
-
               const SizedBox(height: 32),
 
               SizedBox(
@@ -217,7 +257,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginScreen()),
                       );
@@ -245,6 +285,7 @@ class _RegisterField extends StatelessWidget {
   final Widget? suffixIcon;
   final TextInputType? keyboardType;
   final String? Function(String?) validator;
+  final String? errorText;
 
   const _RegisterField({
     required this.controller,
@@ -254,6 +295,7 @@ class _RegisterField extends StatelessWidget {
     this.obscureText = false,
     this.suffixIcon,
     this.keyboardType,
+    this.errorText,
   });
 
   @override
@@ -267,6 +309,7 @@ class _RegisterField extends StatelessWidget {
         hintText: hintText,
         prefixIcon: Icon(icon),
         suffixIcon: suffixIcon,
+        errorText: errorText,
         filled: true,
         fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(
