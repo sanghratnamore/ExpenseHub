@@ -206,9 +206,15 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     final filteredExpenses = getFilteredExpenses();
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Transactions'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'Transactions',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -252,40 +258,59 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                     ],
                   ),
                 ),
+
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                   child: Row(
                     children: [
-                      FilterChip(
-                        label: const Text('All'),
-                        selected: selectedFilter == 'All',
-                        onSelected: (_) {
-                          setState(() {
-                            selectedFilter = 'All';
-                          });
-                        },
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              FilterChip(
+                                label: const Text('All'),
+                                selected: selectedFilter == 'All',
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedFilter = 'All';
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 6),
+                              FilterChip(
+                                label: const Text('Income'),
+                                selected: selectedFilter == 'Income',
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedFilter = 'Income';
+                                  });
+                                },
+                              ),
+                              const SizedBox(width: 6),
+                              FilterChip(
+                                label: const Text('Expense'),
+                                selected: selectedFilter == 'Expense',
+                                visualDensity: VisualDensity.compact,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                                onSelected: (_) {
+                                  setState(() {
+                                    selectedFilter = 'Expense';
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      FilterChip(
-                        label: const Text('Income'),
-                        selected: selectedFilter == 'Income',
-                        onSelected: (_) {
-                          setState(() {
-                            selectedFilter = 'Income';
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      FilterChip(
-                        label: const Text('Expense'),
-                        selected: selectedFilter == 'Expense',
-                        onSelected: (_) {
-                          setState(() {
-                            selectedFilter = 'Expense';
-                          });
-                        },
-                      ),
-                      const Spacer(),
                       GestureDetector(
                         onTap: () async {
                           final picked = await showDatePicker(
@@ -304,8 +329,8 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                            horizontal: 10,
+                            vertical: 7,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.teal.shade50,
@@ -317,13 +342,14 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                             children: [
                               const Icon(
                                 Icons.calendar_month,
-                                size: 18,
+                                size: 16,
                                 color: Colors.teal,
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 5),
                               Text(
-                                DateFormat('MMM yyyy').format(selectedMonth),
+                                DateFormat('MMM yy').format(selectedMonth),
                                 style: const TextStyle(
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.teal,
                                 ),
@@ -335,6 +361,7 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                     ],
                   ),
                 ),
+
                 Expanded(
                   child: filteredExpenses.isEmpty
                       ? const Center(child: Text('No transactions found'))
@@ -348,6 +375,12 @@ class TransactionsScreenState extends State<TransactionsScreen> {
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
+                              color: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(color: Colors.grey.shade200),
+                              ),
                               child: ListTile(
                                 onTap: () => openTransaction(expense),
                                 leading: CircleAvatar(
@@ -370,12 +403,30 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                                 subtitle: Text(
                                   '${expense.category} • ${expense.date}',
                                 ),
-                                trailing: Text(
-                                  '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: isIncome ? Colors.green : Colors.red,
-                                  ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    SizedBox(
+                                      width: 24,
+                                      child: expense.isRecurring
+                                          ? Icon(
+                                              Icons.repeat,
+                                              size: 16,
+                                              color: Colors.teal.shade700,
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isIncome
+                                            ? Colors.green
+                                            : Colors.red,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             );

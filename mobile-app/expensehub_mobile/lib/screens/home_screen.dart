@@ -8,6 +8,7 @@ import 'login_screen.dart';
 import 'add_expense_screen.dart';
 import 'add_income_screen.dart';
 import 'account_information_screen.dart';
+import 'change_password_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<Expense>? onTransactionSelected;
@@ -170,15 +171,31 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.lock_outline),
-                title: const Text('Change password'),
-                onTap: () => Navigator.pop(context),
+                title: const Text('Password change'),
+                onTap: () {
+                  Navigator.pop(context);
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ChangePasswordScreen(),
+                    ),
+                  );
+                },
               ),
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: const Text('Logout'),
-                onTap: () {
-                  Navigator.pop(context);
-                  logout();
+                onTap: () async {
+                  await authService.logout();
+
+                  if (!context.mounted) return;
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
                 },
               ),
             ],
@@ -555,12 +572,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text('${expense.category} • ${expense.date}'),
-                    trailing: Text(
-                      '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isIncome ? Colors.green : Colors.red,
-                      ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          child: expense.isRecurring
+                              ? Icon(
+                                  Icons.repeat,
+                                  size: 16,
+                                  color: Colors.teal.shade700,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isIncome ? Colors.green : Colors.red,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );

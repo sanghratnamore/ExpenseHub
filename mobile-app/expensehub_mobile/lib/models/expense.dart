@@ -4,9 +4,16 @@ class Expense {
   final double amount;
   final String description;
   final String date;
-  final String category;
-  final int categoryId;
+  final int? categoryId;
+  final String? category;
   final String? createdAt;
+
+
+  final bool isRecurring;
+  final String? recurringFrequency;
+  final String? recurringStartDate;
+  final String? nextDueDate;
+
 
   Expense({
     required this.id,
@@ -14,35 +21,85 @@ class Expense {
     required this.amount,
     required this.description,
     required this.date,
-    required this.category,
-    required this.categoryId,
+    this.categoryId,
+    this.category,
     this.createdAt,
+    this.isRecurring = false,
+    this.recurringFrequency,
+    this.recurringStartDate,
+    this.nextDueDate,
   });
 
-  factory Expense.fromJson(Map<String, dynamic> json) {
-    final categoryJson = json['category'];
-    
-    int categoryId = 0;
-    String categoryName = 'Uncategorized';
 
-    if (categoryJson is Map<String, dynamic>) {
-      categoryId = categoryJson['id'] ?? 0;
-      categoryName = categoryJson['name'] ?? 'Uncategorized';
-    } else if (categoryJson is String) {
-      categoryName = categoryJson;
+  factory Expense.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    final categoryValue = json['category'];
+
+
+    String? categoryName;
+
+
+    if (categoryValue is String) {
+      categoryName = categoryValue;
+    } else if (categoryValue
+        is Map<String, dynamic>) {
+      categoryName =
+          categoryValue['name']?.toString();
     }
 
+
     return Expense(
-      id: json['id'] ?? 0,
-      type: json['type'] ?? 'EXPENSE',
-      amount: (json['amount'] is num)
-          ? (json['amount'] as num).toDouble()
-          : 0,
-      description: json['description'] ?? 'No description',
-      date: json['date'] ?? '',
+      id: json['id'] is int
+          ? json['id']
+          : int.parse(
+              json['id'].toString(),
+            ),
+      type: json['type']?.toString() ??
+          'EXPENSE',
+      amount:
+          (json['amount'] as num?)?.toDouble() ??
+              0,
+      description:
+          json['description']?.toString() ?? '',
+      date: json['date']?.toString() ?? '',
+      categoryId: json['categoryId'] is int
+          ? json['categoryId']
+          : int.tryParse(
+              json['categoryId']?.toString() ??
+                  '',
+            ),
       category: categoryName,
-      categoryId: categoryId,
-      createdAt: json['created_at'] ?? json['createdAt'],
+      createdAt:
+          json['createdAt']?.toString(),
+      isRecurring:
+          json['isRecurring'] == true,
+      recurringFrequency: json[
+              'recurringFrequency']
+          ?.toString(),
+      recurringStartDate: json[
+              'recurringStartDate']
+          ?.toString(),
+      nextDueDate:
+          json['nextDueDate']?.toString(),
     );
+  }
+
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'amount': amount,
+      'description': description,
+      'date': date,
+      'categoryId': categoryId,
+      'isRecurring': isRecurring,
+      'recurringFrequency':
+          recurringFrequency,
+      'recurringStartDate':
+          recurringStartDate,
+      'nextDueDate': nextDueDate,
+    };
   }
 }

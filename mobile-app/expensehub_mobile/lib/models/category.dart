@@ -3,11 +3,13 @@ class Category {
   final String name;
   final String? type;
 
+
   Category({
     required this.id,
     required this.name,
     this.type,
   });
+
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
