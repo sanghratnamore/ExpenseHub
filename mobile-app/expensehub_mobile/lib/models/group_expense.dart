@@ -1,11 +1,12 @@
+import '../utils/json_utils.dart';
+
 class GroupExpense {
-  final int id;
+  final String id;
   final String description;
   final double amount;
   final String expenseDate;
-  final int paidById;
+  final String paidById;
   final String paidByName;
-
 
   GroupExpense({
     required this.id,
@@ -16,16 +17,14 @@ class GroupExpense {
     required this.paidByName,
   });
 
-
   factory GroupExpense.fromJson(Map<String, dynamic> json) {
     return GroupExpense(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      description: json['description'] ?? '',
-      amount:
-          (json['amount'] as num?)?.toDouble() ?? 0,
-      expenseDate: json['expenseDate'] ?? '',
-      paidById: (json['paidById'] as num?)?.toInt() ?? 0,
-      paidByName: json['paidByName'] ?? '',
+      id: JsonUtils.parseId(json['id']),
+      description: JsonUtils.parseString(json['description']),
+      amount: JsonUtils.parseDouble(json['amount']),
+      expenseDate: JsonUtils.parseString(json['expenseDate']),
+      paidById: JsonUtils.parseId(json['paidById']),
+      paidByName: JsonUtils.parseString(json['paidByName']),
     );
   }
 }

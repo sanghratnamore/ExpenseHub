@@ -1,11 +1,12 @@
+import '../utils/json_utils.dart';
+
 class GroupBalance {
-  final int userId;
+  final String userId;
   final String userName;
   final double totalPaid;
   final double totalShare;
   final double balance;
   final String status;
-
 
   GroupBalance({
     required this.userId,
@@ -16,20 +17,19 @@ class GroupBalance {
     required this.status,
   });
 
-
   factory GroupBalance.fromJson(
     Map<String, dynamic> json,
   ) {
     return GroupBalance(
-      userId: (json['userId'] as num?)?.toInt() ?? 0,
-      userName: json['userName'] ?? '',
-      totalPaid:
-          (json['totalPaid'] as num?)?.toDouble() ?? 0,
-      totalShare:
-          (json['totalShare'] as num?)?.toDouble() ?? 0,
-      balance:
-          (json['balance'] as num?)?.toDouble() ?? 0,
-      status: json['status'] ?? 'SETTLED',
+      userId: JsonUtils.parseId(json['userId']),
+      userName: JsonUtils.parseString(json['userName']),
+      totalPaid: JsonUtils.parseDouble(json['totalPaid']),
+      totalShare: JsonUtils.parseDouble(json['totalShare']),
+      balance: JsonUtils.parseDouble(json['balance']),
+      status: JsonUtils.parseString(
+        json['status'],
+        fallback: 'SETTLED',
+      ),
     );
   }
 }

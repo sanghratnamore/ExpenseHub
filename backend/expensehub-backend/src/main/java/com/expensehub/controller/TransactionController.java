@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -36,7 +37,7 @@ public class TransactionController {
 
     @PutMapping("/{transactionId}")
     public ResponseEntity<Transaction> updateTransaction(
-            @PathVariable Long transactionId,
+            @PathVariable UUID transactionId,
             @Valid @RequestBody TransactionRequest request
     ) {
         return ResponseEntity.ok(
@@ -46,7 +47,7 @@ public class TransactionController {
 
     @DeleteMapping("/{transactionId}")
     public ResponseEntity<String> deleteTransaction(
-            @PathVariable Long transactionId
+            @PathVariable UUID transactionId
     ) {
         transactionService.deleteTransaction(transactionId);
         return ResponseEntity.ok("Transaction deleted successfully");

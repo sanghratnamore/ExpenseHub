@@ -10,6 +10,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.expensehub.dto.LoginRequest;
 import com.expensehub.dto.LoginResponse;
+import com.expensehub.dto.ChangePasswordRequest;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import java.util.Map;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -19,11 +24,27 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(
+    public ResponseEntity<?> register(
             @Valid @RequestBody RegisterRequest request
     ) {
-        RegisterResponse response = userService.registerUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        try {
+            RegisterResponse response =
+                    userService.registerUser(request);
+
+
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(
+                            Map.of(
+                                    "message",
+                                    e.getMessage()
+                            )
+                    );
+        }
     }
 
     @PostMapping("/login")
@@ -39,6 +60,64 @@ public class AuthController {
                     .body(LoginResponse.builder()
                             .message(e.getMessage())
                             .build());
+        }
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody ChangePasswordRequest request
+    ) {
+        try {
+            userService.changePassword(
+                    userDetails.getUsername(),
+                    request
+            );
+
+
+            return ResponseEntity.ok(
+                    Map.of(
+                            "message",
+                            "Password changed successfully"
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+
+    @PutMapping("/update-profile")
+    public ResponseEntity<?> updateProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> request
+    ) {
+        try {
+            String newName = request.get("name");
+
+            if (newName == null || newName.trim().isEmpty()) {
+                return ResponseEntity
+                        .badRequest()
+                        .body(Map.of("message", "Name is required"));
+            }
+
+            userService.updateUserName(
+                    userDetails.getUsername(),
+                    newName.trim()
+            );
+
+            return ResponseEntity.ok(
+                    Map.of(
+                            "message",
+                            "Profile updated successfully"
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 }

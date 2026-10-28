@@ -1,20 +1,20 @@
+import 'package:expensehub_mobile/theme/eh_card.dart';
 import 'package:flutter/material.dart';
-
+import 'package:intl/intl.dart';
 import '../services/expense_service.dart';
 import '../models/expense.dart';
-import 'add_transaction_screen.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
 import 'transaction_details_sheet.dart';
-
-import 'package:intl/intl.dart';
-
-import 'add_expense_screen.dart';
-import 'add_income_screen.dart';
+import '../widgets/eh_search_bar.dart';
 
 class TransactionsScreen extends StatefulWidget {
-  const TransactionsScreen({super.key});
+  final String? initialFilter;
+
+  const TransactionsScreen({super.key, this.initialFilter});
 
   @override
-  State<TransactionsScreen> createState() => TransactionsScreenState();
+  TransactionsScreenState createState() => TransactionsScreenState();
 }
 
 class TransactionsScreenState extends State<TransactionsScreen> {
@@ -31,6 +31,7 @@ class TransactionsScreenState extends State<TransactionsScreen> {
   @override
   void initState() {
     super.initState();
+    selectedFilter = widget.initialFilter ?? 'All';
     loadExpenses();
   }
 
@@ -206,14 +207,14 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     final filteredExpenses = getFilteredExpenses();
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: const Text(
-          'Transactions',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          'History',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         ),
       ),
       body: isLoading
@@ -226,34 +227,19 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Column(
                     children: [
-                      TextField(
+                      EhSearchBar(
                         controller: searchController,
+                        hintText: 'Search transactions...',
                         onChanged: (value) {
                           setState(() {
                             searchQuery = value;
                           });
                         },
-                        decoration: InputDecoration(
-                          hintText: 'Search transactions...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: searchQuery.isEmpty
-                              ? null
-                              : IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    searchController.clear();
-                                    setState(() {
-                                      searchQuery = '';
-                                    });
-                                  },
-                                ),
-                          filled: true,
-                          fillColor: Colors.grey.shade100,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                        onClear: () {
+                          setState(() {
+                            searchQuery = '';
+                          });
+                        },
                       ),
                     ],
                   ),
@@ -364,7 +350,49 @@ class TransactionsScreenState extends State<TransactionsScreen> {
 
                 Expanded(
                   child: filteredExpenses.isEmpty
-                      ? const Center(child: Text('No transactions found'))
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
+                            child: EhCard(
+                              padding: const EdgeInsets.all(28),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(18),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primarySoft,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.receipt_long,
+                                      size: 34,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  AppSpacing.gapMd,
+                                  const Text(
+                                    'No transactions found',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'Try another month, search term, or filter.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )
                       : ListView.builder(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                           itemCount: filteredExpenses.length,
@@ -373,57 +401,90 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                             final isIncome =
                                 expense.type.toUpperCase() == 'INCOME';
 
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              color: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(color: Colors.grey.shade200),
-                              ),
-                              child: ListTile(
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: EhCard(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
                                 onTap: () => openTransaction(expense),
-                                leading: CircleAvatar(
-                                  backgroundColor: isIncome
-                                      ? Colors.green.shade100
-                                      : Colors.red.shade100,
-                                  child: Icon(
-                                    isIncome
-                                        ? Icons.arrow_downward
-                                        : Icons.arrow_upward,
-                                    color: isIncome ? Colors.green : Colors.red,
-                                  ),
-                                ),
-                                title: Text(
-                                  expense.description,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  '${expense.category} • ${expense.date}',
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                child: Row(
                                   children: [
-                                    SizedBox(
-                                      width: 24,
-                                      child: expense.isRecurring
-                                          ? Icon(
-                                              Icons.repeat,
-                                              size: 16,
-                                              color: Colors.teal.shade700,
-                                            )
-                                          : null,
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: isIncome
+                                            ? AppColors.income.withValues(
+                                                alpha: 0.12,
+                                              )
+                                            : AppColors.expense.withValues(
+                                                alpha: 0.12,
+                                              ),
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: Icon(
+                                        isIncome
+                                            ? Icons.arrow_downward
+                                            : Icons.arrow_upward,
+                                        color: isIncome
+                                            ? AppColors.income
+                                            : AppColors.expense,
+                                        size: 20,
+                                      ),
                                     ),
-                                    const SizedBox(width: 6),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  expense.description,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        AppColors.textPrimary,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (expense.isRecurring)
+                                                const Icon(
+                                                  Icons.repeat,
+                                                  size: 15,
+                                                  color: AppColors.primary,
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${expense.category} • ${expense.date}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
                                     Text(
                                       '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: isIncome
-                                            ? Colors.green
-                                            : Colors.red,
+                                            ? AppColors.income
+                                            : AppColors.expense,
                                       ),
                                     ),
                                   ],

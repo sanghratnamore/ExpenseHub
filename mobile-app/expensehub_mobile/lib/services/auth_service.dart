@@ -31,8 +31,6 @@ class AuthService {
       body: jsonEncode({'email': email, 'password': password}),
     );
 
-    print('LOGIN RESPONSE: ${response.body}');
-
     final result = _handleResponse(response);
 
     final token = result['token'];
@@ -53,6 +51,25 @@ class AuthService {
       value: (result['email'] ?? email).toString(),
     );
     return result;
+  }
+
+  Future<Map<String, dynamic>> updateUserName({required String name}) async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw Exception('Not logged in');
+    }
+
+    final response = await http.put(
+      Uri.parse('http://10.0.2.2:8080/api/auth/update-profile'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'name': name}),
+    );
+
+    return _handleResponse(response);
   }
 
   Future<String?> getUserEmail() async {
@@ -122,12 +139,16 @@ class AuthService {
   }
 
   Map<String, dynamic> _handleResponse(http.Response response) {
-    final body = jsonDecode(response.body);
+    final dynamic body = jsonDecode(response.body);
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return body;
+      return body as Map<String, dynamic>;
     }
 
-    throw Exception(body['message'] ?? 'Request failed');
+    final message = body is Map && body['message'] != null
+        ? body['message'].toString()
+        : 'Request failed';
+
+    throw Exception(message);
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-
 import '../models/recurring_transaction.dart';
 import '../services/recurring_transaction_service.dart';
 
@@ -228,7 +227,7 @@ class _AddRecurringTransactionScreenState
 
               DropdownButtonFormField<
                   String>(
-                value: selectedType,
+                initialValue: selectedType,
                 decoration:
                     const InputDecoration(
                   labelText: 'Type',
@@ -258,7 +257,7 @@ class _AddRecurringTransactionScreenState
 
               DropdownButtonFormField<
                   String>(
-                value: selectedFrequency,
+                initialValue: selectedFrequency,
                 decoration:
                     const InputDecoration(
                   labelText:

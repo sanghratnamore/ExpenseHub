@@ -10,18 +10,23 @@ import org.springframework.stereotype.Service;
 import com.expensehub.dto.LoginRequest;
 import com.expensehub.dto.LoginResponse;
 import com.expensehub.security.JwtService;
-import com.expensehub.entity.Category;
 import com.expensehub.repository.CategoryRepository;
-import java.util.List;
+
+
+
+
+import com.expensehub.dto.ChangePasswordRequest;
+
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
-    private final CategoryRepository categoryRepository;
     private final JwtService jwtService;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final CategoryService categoryService;
+
     public RegisterResponse registerUser(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.getEmail())) {
@@ -36,7 +41,8 @@ public class UserService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        createDefaultCategories(savedUser);
+
+        categoryService.createDefaultCategories(savedUser);
 
         return RegisterResponse.builder()
                 .id(savedUser.getId())
@@ -50,15 +56,19 @@ public class UserService {
     public LoginResponse loginUser(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() ->
+                        new RuntimeException("Email is not registered")
+                );
+
 
         boolean isPasswordCorrect = passwordEncoder.matches(
                 request.getPassword(),
                 user.getPassword()
         );
 
+
         if (!isPasswordCorrect) {
-            throw new RuntimeException("Invalid email or password");
+            throw new RuntimeException("Invalid password");
         }
 
         String token = jwtService.generateToken(user.getEmail());
@@ -73,20 +83,51 @@ public class UserService {
                 .build();
     }
 
-    private void createDefaultCategories(User user) {
-        List<Category> defaultCategories = List.of(
-                Category.builder().name("Food").type("EXPENSE").user(user).build(),
-                Category.builder().name("Travel").type("EXPENSE").user(user).build(),
-                Category.builder().name("Shopping").type("EXPENSE").user(user).build(),
-                Category.builder().name("Bills").type("EXPENSE").user(user).build(),
-                Category.builder().name("Entertainment").type("EXPENSE").user(user).build(),
-                Category.builder().name("Health").type("EXPENSE").user(user).build(),
-                Category.builder().name("Other").type("EXPENSE").user(user).build(),
-                Category.builder().name("Salary").type("INCOME").user(user).build(),
-                Category.builder().name("Freelance").type("INCOME").user(user).build(),
-                Category.builder().name("Other Income").type("INCOME").user(user).build()
+    public void updateUserName(String email, String newName) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new RuntimeException("User not found"));
+
+        user.setName(newName);
+        userRepository.save(user);
+    }
+
+    public void changePassword(String email, ChangePasswordRequest request) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+
+        boolean isCurrentPasswordCorrect = passwordEncoder.matches(
+                request.currentPassword(),
+                user.getPassword()
         );
 
-        categoryRepository.saveAll(defaultCategories);
+
+        if (!isCurrentPasswordCorrect) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+
+        if (request.newPassword() == null ||
+                request.newPassword().length() < 6) {
+            throw new RuntimeException(
+                    "New password must be at least 6 characters"
+            );
+        }
+
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new RuntimeException("New passwords do not match");
+        }
+
+
+        user.setPassword(
+                passwordEncoder.encode(request.newPassword())
+        );
+
+
+        userRepository.save(user);
     }
+
 }

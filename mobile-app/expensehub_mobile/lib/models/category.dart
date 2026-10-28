@@ -1,8 +1,7 @@
 class Category {
-  final int id;
+  final String id;
   final String name;
   final String? type;
-
 
   Category({
     required this.id,
@@ -10,10 +9,9 @@ class Category {
     this.type,
   });
 
-
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString() ?? '',
       name: json['name'] ?? 'Unnamed',
       type: json['type'] ?? json['categoryType'],
     );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../models/category.dart';
 import '../services/auth_service.dart';
 import '../services/category_service.dart';
@@ -61,10 +60,27 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     } catch (error) {
       if (!mounted) return;
 
+      final rawMessage = error.toString();
+
+      String message;
+
+      if (rawMessage.contains('used by one or more transactions')) {
+        message =
+            'This category is used by transactions and cannot be deleted.';
+      } else if (rawMessage.contains('Session expired')) {
+        message = 'Your session expired. Please log in again.';
+      } else {
+        message = 'Could not delete this category. Please try again.';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(error.toString()),
+          backgroundColor: Colors.red.shade600,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          content: Text(message),
         ),
       );
     }
@@ -146,7 +162,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                       await categoryService.createCategory(
                         name: name,
                         type: categoryType,
-                        userId: int.parse(userId),
+                        userId: userId,
                       );
 
                       if (!context.mounted) return;
@@ -176,6 +192,39 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
         );
       },
     );
+  }
+
+  Future<void> confirmDeleteCategory(Category category) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: const Text('Delete category?'),
+          content: Text(
+            'Are you sure you want to delete "${category.name}"? '
+            'This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      deleteCategory(category);
+    }
   }
 
   @override
@@ -263,7 +312,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
           return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: categories.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final category = categories[index];
 
@@ -312,7 +361,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                     ),
                     IconButton(
                       onPressed: () {
-                        deleteCategory(category);
+                        confirmDeleteCategory(category);
                       },
                       icon: const Icon(Icons.delete_outline, color: Colors.red),
                     ),

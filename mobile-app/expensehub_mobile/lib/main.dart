@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/auth_gate.dart';
 import 'screens/login_screen.dart';
-import 'screens/welcome_screen.dart';
 void main() {
   runApp(const ExpenseHubApp());
 }

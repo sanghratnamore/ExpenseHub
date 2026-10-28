@@ -1,25 +1,25 @@
+import '../utils/json_utils.dart';
+
 class CategorySummary {
   final String? categoryName;
   final double totalAmount;
-
 
   CategorySummary({
     required this.totalAmount,
     this.categoryName,
   });
 
-
   factory CategorySummary.fromJson(
     Map<String, dynamic> json,
   ) {
     return CategorySummary(
-      categoryName: json['categoryName'] as String?,
-      totalAmount:
-          (json['totalAmount'] as num).toDouble(),
+      categoryName: JsonUtils.parseOptionalString(
+        json['categoryName'],
+      ),
+      totalAmount: JsonUtils.parseDouble(json['totalAmount']),
     );
   }
 }
-
 
 class MonthlyReport {
   final int year;
@@ -28,7 +28,6 @@ class MonthlyReport {
   final double totalExpense;
   final double savings;
   final List<CategorySummary> categorySummary;
-
 
   MonthlyReport({
     required this.year,
@@ -39,26 +38,28 @@ class MonthlyReport {
     required this.categorySummary,
   });
 
-
   factory MonthlyReport.fromJson(
     Map<String, dynamic> json,
   ) {
     return MonthlyReport(
-      year: json['year'] as int,
-      month: json['month'] as int,
-      totalIncome:
-          (json['totalIncome'] as num).toDouble(),
-      totalExpense:
-          (json['totalExpense'] as num).toDouble(),
-      savings: (json['savings'] as num).toDouble(),
-      categorySummary:
-          (json['categorySummary'] as List? ?? [])
-              .map(
-                (item) => CategorySummary.fromJson(
-                  item as Map<String, dynamic>,
-                ),
-              )
-              .toList(),
+      year: int.tryParse(
+            JsonUtils.parseString(json['year']),
+          ) ??
+          0,
+      month: int.tryParse(
+            JsonUtils.parseString(json['month']),
+          ) ??
+          0,
+      totalIncome: JsonUtils.parseDouble(json['totalIncome']),
+      totalExpense: JsonUtils.parseDouble(json['totalExpense']),
+      savings: JsonUtils.parseDouble(json['savings']),
+      categorySummary: (json['categorySummary'] as List? ?? [])
+          .map(
+            (item) => CategorySummary.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
     );
   }
 }
