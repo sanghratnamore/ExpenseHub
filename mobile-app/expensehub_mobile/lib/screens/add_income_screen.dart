@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/expense.dart';
 import 'add_transaction_screen.dart';
 
@@ -9,9 +10,6 @@ class AddIncomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AddTransactionScreen(
-      expense: expense,
-      transactionType: 'INCOME',
-    );
+    return AddTransactionScreen(expense: expense, transactionType: 'INCOME');
   }
 }

@@ -1,54 +1,124 @@
 import 'package:flutter/material.dart';
-
 import '../services/auth_service.dart';
-import '../services/expense_service.dart';
 import '../models/expense.dart';
-import 'add_transaction_screen.dart';
-import 'login_screen.dart';
+import '../services/expense_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/eh_card.dart';
 import 'add_expense_screen.dart';
 import 'add_income_screen.dart';
-import 'account_information_screen.dart';
-import 'change_password_screen.dart';
+import 'transaction_list_screen.dart';
+import 'transactions_screen.dart';
+import '../services/group_service.dart';
+import '../models/group.dart';
+import 'group_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<Expense>? onTransactionSelected;
+  final VoidCallback? onOpenGroups;
+  final VoidCallback? onOpenTransactions;
 
-  const HomeScreen({super.key, this.onTransactionSelected});
+  const HomeScreen({
+    super.key,
+    this.onTransactionSelected,
+    this.onOpenGroups,
+    this.onOpenTransactions,
+  });
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
+@override
+State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final authService = AuthService();
-  final expenseService = ExpenseService();
+class HomeScreenState extends State<HomeScreen> {
+  final AuthService authService = AuthService();
+  final ExpenseService expenseService = ExpenseService();
+  final GroupService groupService = GroupService();
 
-  String userName = 'User';
-  String userEmail = '';
+  List<Group> groups = [];
+  bool isLoadingGroups = true;
 
-  List<Expense> allExpenses = [];
+  ValueChanged<Expense>? get onTransactionSelected =>
+      widget.onTransactionSelected;
+
+  List<Expense> expenses = [];
   bool isLoading = true;
   String? errorMessage;
+  String userName = '';
 
-  String selectedPeriod = 'Month';
+  VoidCallback? get onOpenGroups => widget.onOpenGroups;
+  VoidCallback? get onOpenTransactions => widget.onOpenTransactions;
+
+  String selectedRange = 'Month';
 
   @override
   void initState() {
     super.initState();
-    loadUser();
+    loadUserName();
     loadExpenses();
+    loadGroups();
   }
 
-  Future<void> loadUser() async {
-    final name = await authService.getUserName();
-    final email = await authService.getUserEmail();
+  void refreshUserName() {
+    loadUserName();
+  }
 
-    if (!mounted) return;
+  void openGroupsScreen() {
+    if (onOpenGroups != null) {
+      onOpenGroups!();
+    }
+  }
 
+  void openGroupDetails(Group group) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => GroupDetailsScreen(group: group)),
+    );
+  }
+
+  String _groupSubtitle(Group group) {
+    return 'Tap to view';
+  }
+
+  Future<void> loadGroups() async {
     setState(() {
-      userName = name ?? 'User';
-      userEmail = email ?? '';
+      isLoadingGroups = true;
     });
+
+    try {
+      final result = await groupService.getGroups();
+
+      if (!mounted) return;
+
+      setState(() {
+        groups = result;
+        isLoadingGroups = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        groups = [];
+        isLoadingGroups = false;
+      });
+    }
+  }
+
+  Future<void> loadUserName() async {
+    try {
+      final name = await authService.getUserName();
+
+      if (!mounted) return;
+
+      setState(() {
+        userName = name ?? 'User';
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        userName = 'User';
+      });
+    }
   }
 
   Future<void> loadExpenses() async {
@@ -58,12 +128,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final expenses = await expenseService.getExpenses();
+      final result = await expenseService.getExpenses();
 
       if (!mounted) return;
 
       setState(() {
-        allExpenses = expenses;
+        expenses = result;
         isLoading = false;
       });
     } catch (error) {
@@ -76,173 +146,33 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> logout() async {
-    await authService.logout();
-
-    if (!mounted) return;
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-    );
-  }
-
-  Future<void> openAddExpense() async {
-    final added = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (context) => const AddExpenseScreen()),
-    );
-
-    if (added == true) {
-      loadExpenses();
-    }
-  }
-
-  Future<void> openAddIncome() async {
-    final added = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (context) => const AddIncomeScreen()),
-    );
-
-    if (added == true) {
-      loadExpenses();
-    }
-  }
-
-  Future<void> openAddTransaction(String type) async {
-    if (type.toUpperCase() == 'INCOME') {
-      await openAddIncome();
-    } else {
-      await openAddExpense();
-    }
-  }
-
-  Future<void> openProfile() async {
-    await showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: Colors.teal.shade100,
-                child: Text(
-                  userName[0].toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                userName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(userEmail),
-              const SizedBox(height: 20),
-              ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: const Text('Account information'),
-                onTap: () async {
-                  Navigator.pop(context);
-
-                  final updated = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AccountInformationScreen(),
-                    ),
-                  );
-
-                  if (updated == true) {
-                    loadUser();
-                  }
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.lock_outline),
-                title: const Text('Password change'),
-                onTap: () {
-                  Navigator.pop(context);
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ChangePasswordScreen(),
-                    ),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
-                onTap: () async {
-                  await authService.logout();
-
-                  if (!context.mounted) return;
-
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (route) => false,
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  List<Expense> getExpensesForPeriod() {
+  List<Expense> getRangeExpenses() {
     final now = DateTime.now();
+    DateTime startDate;
 
-    if (selectedPeriod == 'Week') {
-      final weekStart = now.subtract(Duration(days: now.weekday - 1));
-      final weekEnd = weekStart.add(const Duration(days: 7));
-
-      return allExpenses.where((expense) {
-        final date = DateTime.tryParse(expense.date);
-        if (date == null) return false;
-
-        return date.isAfter(weekStart.subtract(const Duration(days: 1))) &&
-            date.isBefore(weekEnd);
-      }).toList();
+    if (selectedRange == 'Week') {
+      startDate = now.subtract(Duration(days: now.weekday - 1));
+    } else if (selectedRange == 'Year') {
+      startDate = DateTime(now.year, 1, 1);
+    } else {
+      startDate = DateTime(now.year, now.month, 1);
     }
 
-    if (selectedPeriod == 'Year') {
-      return allExpenses.where((expense) {
-        final date = DateTime.tryParse(expense.date);
-        if (date == null) return false;
-
-        return date.year == now.year;
-      }).toList();
-    }
-
-    return allExpenses.where((expense) {
+    return expenses.where((expense) {
       final date = DateTime.tryParse(expense.date);
       if (date == null) return false;
 
-      return date.year == now.year && date.month == now.month;
+      return date.isAfter(startDate.subtract(const Duration(seconds: 1)));
     }).toList();
   }
 
-  Map<String, double> calculateTotals(List<Expense> expenses) {
+  Map<String, double> getTotals() {
+    final rangeExpenses = getRangeExpenses();
+
     double income = 0;
     double expenseTotal = 0;
 
-    for (final expense in expenses) {
+    for (final expense in rangeExpenses) {
       if (expense.type.toUpperCase() == 'INCOME') {
         income += expense.amount;
       } else {
@@ -257,426 +187,738 @@ class _HomeScreenState extends State<HomeScreen> {
     };
   }
 
+  List<Expense> getRecentTransactions() {
+    final sorted = List<Expense>.from(expenses);
+
+    sorted.sort((a, b) {
+      final timeA = DateTime.tryParse(a.createdAt ?? a.date);
+      final timeB = DateTime.tryParse(b.createdAt ?? b.date);
+
+      if (timeA == null || timeB == null) return 0;
+
+      return timeB.compareTo(timeA);
+    });
+
+    return sorted.take(4).toList();
+  }
+
+  void openTransactions(String filter) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TransactionListScreen(type: filter)),
+    );
+  }
+
+  void openAllTransactions() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+    );
+  }
+
+  Future<void> openAddExpense() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
+    );
+    loadExpenses();
+  }
+
+  Future<void> openAddIncome() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AddIncomeScreen()),
+    );
+    loadExpenses();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final periodExpenses = getExpensesForPeriod();
-    final totals = calculateTotals(periodExpenses);
+    final totals = getTotals();
+    final recentTransactions = getRecentTransactions();
 
-    final recentExpenses = List<Expense>.from(periodExpenses)
-      ..sort((a, b) {
-        final timeA = DateTime.tryParse(a.createdAt ?? a.date);
-
-        final timeB = DateTime.tryParse(b.createdAt ?? b.date);
-
-        if (timeA == null || timeB == null) return 0;
-
-        return timeB.compareTo(timeA);
-      });
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (errorMessage != null) {
-      return Center(child: Text(errorMessage!));
-    }
-
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: loadExpenses,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF6F7F9),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        loadExpenses();
-                      },
-                      child: Image.asset(
-                        'assets/images/logo.png',
-                        height: 40,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: openProfile,
-                      child: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Colors.teal.shade100,
-                        child: Text(
-                          userName[0].toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.teal.shade700, Colors.teal.shade500],
-                ),
-                borderRadius: BorderRadius.circular(24),
+            GestureDetector(
+              onTap: loadExpenses,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final logoWidth = MediaQuery.of(context).size.width * 0.10;
+
+                  return Image.asset(
+                    'assets/images/logo.png',
+                    width: logoWidth.clamp(145.0, 160.0),
+                    fit: BoxFit.contain,
+                  );
+                },
               ),
-              child: Stack(
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(
+              Icons.notifications_none_rounded,
+              color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+          ? Center(child: Text(errorMessage!))
+          : RefreshIndicator(
+              onRefresh: loadExpenses,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '$selectedPeriod Balance',
-                        style: const TextStyle(color: Colors.white70),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '₹${totals['balance']!.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: SummaryCard(
-                              title: 'Income',
-                              amount: totals['income']!,
-                              color: Colors.green,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: SummaryCard(
-                              title: 'Expense',
-                              amount: totals['expense']!,
-                              color: Colors.red,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  _greeting(),
+                  const SizedBox(height: 4),
+                  _balanceCard(totals),
+                  AppSpacing.gapLg,
+                  _quickActions(),
+                  AppSpacing.gapLg,
+                  _sectionHeader(
+                    title: 'Recent transactions',
+                    actionText: 'See all',
+                    onAction: () {
+                      if (onOpenTransactions != null) {
+                        onOpenTransactions!();
+                      } else {
+                        openAllTransactions();
+                      }
+                    },
                   ),
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          PeriodTab(
-                            label: 'W',
-                            isSelected: selectedPeriod == 'Week',
-                            onTap: () {
-                              setState(() {
-                                selectedPeriod = 'Week';
-                              });
-                            },
-                          ),
-                          PeriodTab(
-                            label: 'M',
-                            isSelected: selectedPeriod == 'Month',
-                            onTap: () {
-                              setState(() {
-                                selectedPeriod = 'Month';
-                              });
-                            },
-                          ),
-                          PeriodTab(
-                            label: 'Y',
-                            isSelected: selectedPeriod == 'Year',
-                            onTap: () {
-                              setState(() {
-                                selectedPeriod = 'Year';
-                              });
-                            },
-                          ),
-                        ],
+                  AppSpacing.gapSm,
+                  if (recentTransactions.isEmpty)
+                    _emptyRecent()
+                  else
+                    ...recentTransactions.map(_recentTile),
+                  AppSpacing.gapLg,
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 10),
+                    child: Text(
+                      'Groups',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
+                  AppSpacing.gapSm,
+                  isLoadingGroups
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : groups.isEmpty
+                      ? _emptyGroups()
+                      : _groupsPreview(groups.take(3).toList()),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+    );
+  }
+
+  Widget _greeting() {
+    final hour = DateTime.now().hour;
+    String greeting;
+
+    if (hour < 12) {
+      greeting = 'Good morning';
+    } else if (hour < 17) {
+      greeting = 'Good afternoon';
+    } else {
+      greeting = 'Good evening';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 16),
+      child: Text(
+        '$greeting, $userName',
+        style: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textSecondary,
+        ),
+      ),
+    );
+  }
+
+  Widget _balanceCard(Map<String, double> totals) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
+        ),
+        borderRadius: AppRadius.card,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.25),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total balance',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              _rangeSelector(),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '₹${totals['balance']!.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 38,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _balanceStat(
+                  label: 'Income',
+                  amount: totals['income']!,
+                  icon: Icons.trending_up,
+                  onTap: () => openTransactions('INCOME'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _balanceStat(
+                  label: 'Expenses',
+                  amount: totals['expense']!,
+                  icon: Icons.trending_down,
+                  onTap: () => openTransactions('EXPENSE'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rangeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: ['Week', 'Month', 'Year'].map((range) {
+          final isSelected = selectedRange == range;
+
+          return GestureDetector(
+            onTap: () => setState(() => selectedRange = range),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Text(
+                range,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? AppColors.primary : Colors.white,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _balanceStat({
+    required String label,
+    required double amount,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => openAddTransaction('EXPENSE'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.red.shade500, Colors.red.shade700],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.red.withOpacity(0.25),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.add_card,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Add Expense',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => openAddTransaction('INCOME'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.green.shade500,
-                            Colors.green.shade700,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.25),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.savings,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Add Income',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                Icon(icon, color: Colors.white, size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
             Text(
-              'Recent Transactions',
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.bold),
+              '₹${amount.toStringAsFixed(0)}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-            const SizedBox(height: 12),
-            if (recentExpenses.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.receipt_long,
-                      size: 42,
-                      color: Colors.grey.shade400,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'No transactions for this $selectedPeriod',
-                      style: TextStyle(color: Colors.grey.shade600),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ...recentExpenses.take(5).map((expense) {
-                final isIncome = expense.type.toUpperCase() == 'INCOME';
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  child: ListTile(
-                    onTap: () {
-                      if (widget.onTransactionSelected != null) {
-                        widget.onTransactionSelected!(expense);
-                      }
-                    },
-                    leading: CircleAvatar(
-                      backgroundColor: isIncome
-                          ? Colors.green.shade100
-                          : Colors.red.shade100,
-                      child: Icon(
-                        isIncome ? Icons.arrow_downward : Icons.arrow_upward,
-                        color: isIncome ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    title: Text(
-                      expense.description,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text('${expense.category} • ${expense.date}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 24,
-                          child: expense.isRecurring
-                              ? Icon(
-                                  Icons.repeat,
-                                  size: 16,
-                                  color: Colors.teal.shade700,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: isIncome ? Colors.green : Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
           ],
         ),
       ),
     );
   }
-}
 
-class SummaryCard extends StatelessWidget {
-  final String title;
-  final double amount;
-  final Color color;
-
-  const SummaryCard({
-    super.key,
-    required this.title,
-    required this.amount,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+  Widget _quickActions() {
+    return Row(
+      children: [
+        Expanded(
+          child: _quickCard(
+            title: 'Add Expense',
+            subtitle: 'Track spending',
+            icon: Icons.add_circle_outline,
+            gradient: const [Color(0xFFFFE4E6), Color(0xFFFFD5DA)],
+            iconColor: const Color(0xFFE11D48),
+            onTap: openAddExpense,
           ),
-          const SizedBox(height: 4),
-          Text(
-            '₹${amount.toStringAsFixed(2)}',
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: _quickCard(
+            title: 'Add Income',
+            subtitle: 'Add earnings',
+            icon: Icons.savings_outlined,
+            gradient: const [Color(0xFFDCFCE7), Color(0xFFC8F5D6)],
+            iconColor: const Color(0xFF059669),
+            onTap: openAddIncome,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _quickCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Color> gradient,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.65),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: iconColor.withValues(alpha: 0.18),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: iconColor.withValues(alpha: 0.16),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: iconColor,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: iconColor.withValues(alpha: 0.75),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader({
+    required String title,
+    required String actionText,
+    required VoidCallback onAction,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        GestureDetector(
+          onTap: onAction,
+          child: Text(
+            actionText,
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _groupsPreview(List<Group> groups) {
+    return SizedBox(
+      height: 125,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: groups.length + 1,
+        itemBuilder: (context, index) {
+          if (index == groups.length) {
+            return _openGroupsChip();
+          }
+
+          final group = groups[index];
+
+          return GestureDetector(
+            onTap: () => openGroupDetails(group),
+            child: Container(
+              width: 160,
+              margin: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.18),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: const Icon(
+                      Icons.group_outlined,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    group.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    _groupSubtitle(group),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _openGroupsChip() {
+    return GestureDetector(
+      onTap: openGroupsScreen,
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.groups_2, color: AppColors.primary),
+              const SizedBox(height: 8),
+              const Text(
+                'All Groups',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _recentTile(Expense expense) {
+    final isIncome = expense.type.toUpperCase() == 'INCOME';
+    final color = isIncome
+        ? const Color.fromARGB(255, 10, 146, 100)
+        : const Color.from(alpha: 1, red: 0.937, green: 0.267, blue: 0.267);
+
+    final String title = expense.description;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        onTap: () {
+          if (onTransactionSelected != null) {
+            onTransactionSelected!(expense);
+          } else {
+            openAllTransactions();
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: color.withValues(alpha: 0.22),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Icon(
+                  isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      expense.category ?? 'Uncategorized',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(0)}',
+                style: TextStyle(fontWeight: FontWeight.w800, color: color),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyRecent() {
+    return EhCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const Icon(Icons.receipt_long, color: AppColors.textSecondary),
+          AppSpacing.gapSm,
+          const Text(
+            'No recent transactions',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
       ),
     );
   }
-}
 
-class PeriodTab extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const PeriodTab({
-    super.key,
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _emptyGroups() {
     return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      onTap: openGroupsScreen,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.teal.shade700 : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.teal.shade800,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Icon(Icons.group_add, color: AppColors.primary),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Create a group',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Split expenses with friends or family.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
         ),
       ),
     );

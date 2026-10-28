@@ -7,6 +7,7 @@ import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -16,7 +17,7 @@ import java.util.List;
 public class GroupExpenseRequest {
 
     @NotNull(message = "Group ID is required")
-    private Long groupId;
+    private UUID groupId;
 
     @NotBlank(message = "Description is required")
     private String description;
@@ -28,8 +29,10 @@ public class GroupExpenseRequest {
     private LocalDate expenseDate;
 
     @NotNull(message = "Paid by user ID is required")
-    private Long paidBy;
+    private UUID paidBy;
 
     @NotNull(message = "Member IDs are required")
-    private List<Long> memberIds;
+    private List<UUID> memberIds;
+
+    private UUID categoryId;
 }

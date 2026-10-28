@@ -1,13 +1,13 @@
 package com.expensehub.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.UUID;
 
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class CategoryRequest {
 
     @NotBlank(message = "Category name is required")
@@ -16,5 +16,5 @@ public class CategoryRequest {
     @NotBlank(message = "Category type is required")
     private String type;
 
-    private Long userId;
+    private UUID userId;
 }

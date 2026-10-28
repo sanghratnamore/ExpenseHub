@@ -1,4 +1,8 @@
 package com.expensehub.dto;
 
-public class ChangePasswordRequest {
-}
+
+public record ChangePasswordRequest(
+        String currentPassword,
+        String newPassword,
+        String confirmPassword
+) {}

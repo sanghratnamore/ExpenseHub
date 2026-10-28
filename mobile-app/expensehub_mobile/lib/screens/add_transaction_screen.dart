@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-
-import '../models/recurring_transaction.dart';
+import '../utils/error_messages.dart';
 import '../services/recurring_transaction_service.dart';
 
 import 'manage_categories_screen.dart';
@@ -42,7 +41,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   String selectedType = 'EXPENSE';
   DateTime selectedDate = DateTime.now();
-  int? selectedCategoryId;
+  String? selectedCategoryId;
 
   bool isLoading = false;
   late Future<List<Category>> categoriesFuture;
@@ -237,7 +236,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   List<Category> getSortedCategories(List<Category> categories) {
-    final usageCount = <int, int>{};
+    final usageCount = <String, int>{};
 
     for (final expense in expenses) {
       if (expense.categoryId == null) continue;
@@ -471,7 +470,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       final newCategory = await categoryService.createCategory(
                         name: name,
                         type: selectedType,
-                        userId: int.parse(userId),
+                        userId: userId,
                       );
 
                       if (!context.mounted) return;
@@ -482,7 +481,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
                       ScaffoldMessenger.of(
                         context,
-                      ).showSnackBar(SnackBar(content: Text(error.toString())));
+                      ).showSnackBar(SnackBar(content: Text(getFriendlyError(error))));
                     }
                   },
                   style: FilledButton.styleFrom(
@@ -544,11 +543,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       if (isEditMode) {
         await expenseService.updateExpense(
           id: existingExpense!.id,
+          userId: userId,
           type: selectedType,
           amount: double.parse(amountController.text.trim()),
           description: descriptionController.text.trim(),
           date: selectedDate.toIso8601String().substring(0, 10),
-          userId: int.parse(userId),
           categoryId: selectedCategoryId!,
         );
       } else {
@@ -559,11 +558,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             'Authorization': 'Bearer $token',
           },
           body: jsonEncode({
+            'userId': userId,
             'type': selectedType,
             'amount': double.parse(amountController.text.trim()),
             'description': descriptionController.text.trim(),
             'date': selectedDate.toIso8601String().substring(0, 10),
-            'userId': int.parse(userId),
             'categoryId': selectedCategoryId,
             'isRecurring': isRecurring,
             'recurringFrequency': isRecurring ? selectedFrequency : null,
@@ -571,10 +570,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         );
 
         if (response.statusCode != 200 && response.statusCode != 201) {
-          throw Exception('Failed: ${response.statusCode} ${response.body}');
+          debugPrint('Transaction save failed: ${response.statusCode}');
+          debugPrint('Response body: ${response.body}');
+
+          throw Exception('Failed to save transaction: ${response.body}');
         }
       }
-      
 
       if (!mounted) return;
 
@@ -600,7 +601,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error.toString())));
+          .showSnackBar(SnackBar(content: Text(getFriendlyError(error))));
     } finally {
       if (mounted) {
         setState(() {

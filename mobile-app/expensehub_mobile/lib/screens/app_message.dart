@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 void showAppMessage(
   BuildContext context, {
   required String message,

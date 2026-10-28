@@ -2,13 +2,15 @@ package com.expensehub.dto;
 
 import lombok.*;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class RegisterResponse {
-    private Long id;
+    private UUID id;
     private String name;
     private String email;
     private String phone;

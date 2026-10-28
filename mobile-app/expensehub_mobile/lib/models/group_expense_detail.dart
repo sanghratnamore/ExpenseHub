@@ -1,9 +1,10 @@
+import '../utils/json_utils.dart';
+
 class GroupExpenseSplit {
-  final int id;
-  final int userId;
+  final String id;
+  final String userId;
   final String? userName;
   final double shareAmount;
-
 
   GroupExpenseSplit({
     required this.id,
@@ -12,32 +13,28 @@ class GroupExpenseSplit {
     this.userName,
   });
 
-
   factory GroupExpenseSplit.fromJson(
     Map<String, dynamic> json,
   ) {
     return GroupExpenseSplit(
-      id: json['id'] as int,
-      userId: json['userId'] as int,
-      userName: json['userName'] as String?,
-      shareAmount:
-          (json['shareAmount'] as num).toDouble(),
+      id: JsonUtils.parseId(json['id']),
+      userId: JsonUtils.parseId(json['userId']),
+      userName: JsonUtils.parseOptionalString(json['userName']),
+      shareAmount: JsonUtils.parseDouble(json['shareAmount']),
     );
   }
 }
 
-
 class GroupExpenseDetail {
-  final int id;
+  final String id;
   final String description;
   final double amount;
   final String expenseDate;
-  final int paidById;
+  final String paidById;
   final String paidByName;
-  final int? categoryId;
+  final String? categoryId;
   final String? categoryName;
   final List<GroupExpenseSplit> splits;
-
 
   GroupExpenseDetail({
     required this.id,
@@ -51,19 +48,18 @@ class GroupExpenseDetail {
     this.categoryName,
   });
 
-
   factory GroupExpenseDetail.fromJson(
     Map<String, dynamic> json,
   ) {
     return GroupExpenseDetail(
-      id: json['id'] as int,
-      description: json['description'] as String,
-      amount: (json['amount'] as num).toDouble(),
-      expenseDate: json['expenseDate'] as String,
-      paidById: json['paidById'] as int,
-      paidByName: json['paidByName'] as String,
-      categoryId: json['categoryId'] as int?,
-      categoryName: json['categoryName'] as String?,
+      id: JsonUtils.parseId(json['id']),
+      description: JsonUtils.parseString(json['description']),
+      amount: JsonUtils.parseDouble(json['amount']),
+      expenseDate: JsonUtils.parseString(json['expenseDate']),
+      paidById: JsonUtils.parseId(json['paidById']),
+      paidByName: JsonUtils.parseString(json['paidByName']),
+      categoryId: JsonUtils.parseOptionalId(json['categoryId']),
+      categoryName: JsonUtils.parseOptionalString(json['categoryName']),
       splits: (json['splits'] as List? ?? [])
           .map(
             (item) => GroupExpenseSplit.fromJson(

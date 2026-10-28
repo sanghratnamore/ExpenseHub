@@ -8,7 +8,7 @@ import 'auth_service.dart';
 class ExpenseService {
   static const String baseUrl = 'http://10.0.2.2:8080/api/transactions';
   final AuthService authService = AuthService();
-  
+
   Future<List<Expense>> getExpenses() async {
     final token = await authService.getToken();
 
@@ -24,7 +24,6 @@ class ExpenseService {
       },
     );
 
-    
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((item) => Expense.fromJson(item)).toList();
@@ -35,17 +34,19 @@ class ExpenseService {
       throw Exception('Session expired. Please log in again.');
     }
 
-    throw Exception('Failed to load expenses: ${response.statusCode}');
+    throw Exception(
+      'Failed to load expenses: ${response.statusCode} ${response.body}',
+    );
   }
 
   Future<void> updateExpense({
-    required int id,
+    required String id,
+    required String userId,
     required String type,
     required double amount,
     required String description,
     required String date,
-    required int userId,
-    required int categoryId,
+    required String categoryId,
   }) async {
     final token = await authService.getToken();
 
@@ -60,11 +61,11 @@ class ExpenseService {
         'Authorization': 'Bearer $token',
       },
       body: jsonEncode({
+        'userId': userId,
         'type': type,
         'amount': amount,
         'description': description,
         'date': date,
-        'userId': userId,
         'categoryId': categoryId,
       }),
     );
@@ -76,7 +77,7 @@ class ExpenseService {
     }
   }
 
-  Future<void> deleteExpense(int id) async {
+  Future<void> deleteExpense(String id) async {
     final token = await authService.getToken();
 
     if (token == null) {
@@ -85,14 +86,13 @@ class ExpenseService {
 
     final response = await http.delete(
       Uri.parse('$baseUrl/$id'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to delete transaction: ${response.statusCode}');
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception(
+        'Failed to delete transaction: ${response.statusCode} ${response.body}',
+      );
     }
   }
 }

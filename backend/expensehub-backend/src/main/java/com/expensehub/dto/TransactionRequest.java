@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -26,8 +27,12 @@ public class TransactionRequest {
     private LocalDate date;
 
     @NotNull(message = "User ID is required")
-    private Long userId;
+    private UUID userId;
 
     @NotNull(message = "Category ID is required")
-    private Long categoryId;
+    private UUID categoryId;
+
+    private Boolean isRecurring;
+
+    private String recurringFrequency;
 }

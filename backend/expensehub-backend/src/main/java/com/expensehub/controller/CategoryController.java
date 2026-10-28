@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -27,10 +28,29 @@ public class CategoryController {
                 .body(categoryService.createCategory(request));
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Category>> getCategories(
-            @PathVariable Long userId
+    @GetMapping("/me")
+    public ResponseEntity<List<Category>> getMyCategories() {
+        return ResponseEntity.ok(categoryService.getMyCategories());
+    }
+
+
+
+    @PutMapping("/{categoryId}")
+    public ResponseEntity<Category> updateCategory(
+            @PathVariable UUID categoryId,
+            @Valid @RequestBody CategoryRequest request
     ) {
-        return ResponseEntity.ok(categoryService.getCategoriesByUser(userId));
+        return ResponseEntity.ok(
+                categoryService.updateCategory(categoryId, request)
+        );
+    }
+
+
+    @DeleteMapping("/{categoryId}")
+    public ResponseEntity<Void> deleteCategory(
+            @PathVariable UUID categoryId
+    ) {
+        categoryService.deleteCategory(categoryId);
+        return ResponseEntity.noContent().build();
     }
 }

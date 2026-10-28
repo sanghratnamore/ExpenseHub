@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-
 import '../models/expense.dart';
 import 'dashboard_screen.dart';
 import 'groups_screen.dart';
 import 'home_screen.dart';
 import 'transactions_screen.dart';
-
+import '../widgets/eh_center_nav_bar.dart';
+import 'profile_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -18,9 +18,13 @@ class _MainShellState extends State<MainShell> {
   int currentIndex = 0;
 
   final PageController pageController = PageController();
+  final GlobalKey<HomeScreenState> homeKey = GlobalKey<HomeScreenState>();
 
   final GlobalKey<TransactionsScreenState> transactionsKey =
       GlobalKey<TransactionsScreenState>();
+
+  final GlobalKey<DashboardScreenState> dashboardKey =
+      GlobalKey<DashboardScreenState>();
 
   void goToPage(int index) {
     setState(() {
@@ -32,6 +36,10 @@ class _MainShellState extends State<MainShell> {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
     );
+
+    if (index == 1) {
+      dashboardKey.currentState?.refreshAll();
+    }
   }
 
   void openTransactionFromHome(Expense expense) {
@@ -60,40 +68,21 @@ class _MainShellState extends State<MainShell> {
         },
         children: [
           HomeScreen(
+            key: homeKey,
             onTransactionSelected: openTransactionFromHome,
+            onOpenGroups: () => goToPage(2),
+            onOpenTransactions: () => goToPage(3),
           ),
-          const DashboardScreen(),
+          DashboardScreen(key: dashboardKey),
           const GroupsScreen(),
-          TransactionsScreen(
-            key: transactionsKey,
-          ),
+          TransactionsScreen(key: transactionsKey, initialFilter: ''),
+          const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: goToPage,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.group_outlined),
-            selectedIcon: Icon(Icons.group),
-            label: 'Groups',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Transactions',
-          ),
-        ],
+      bottomNavigationBar: EhBottomNavBar(
+        currentIndex: currentIndex,
+        onTap: goToPage,
+        onProfilePressed: () => goToPage(4),
       ),
     );
   }

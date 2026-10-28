@@ -8,10 +8,11 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
-public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
 
-    List<Transaction> findByUserIdOrderByDateDesc(Long userId);
+    List<Transaction> findByUserIdOrderByDateDesc(UUID userId);
 
     @Query("""
         SELECT COALESCE(SUM(t.amount), 0)
@@ -21,7 +22,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         AND t.date BETWEEN :startDate AND :endDate
     """)
     BigDecimal getTotalByTypeAndDateRange(
-            @Param("userId") Long userId,
+            @Param("userId") UUID userId,
             @Param("type") String type,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
@@ -36,7 +37,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
         GROUP BY t.category.name
     """)
     List<Object[]> getCategoryWiseExpense(
-            @Param("userId") Long userId,
+            @Param("userId") UUID userId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
     );

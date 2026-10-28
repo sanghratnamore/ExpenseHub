@@ -1,19 +1,19 @@
+import '../utils/json_utils.dart';
+
 class Expense {
-  final int id;
+  final String id;
   final String type;
   final double amount;
   final String description;
   final String date;
-  final int? categoryId;
+  final String? categoryId;
   final String? category;
   final String? createdAt;
-
 
   final bool isRecurring;
   final String? recurringFrequency;
   final String? recurringStartDate;
   final String? nextDueDate;
-
 
   Expense({
     required this.id,
@@ -30,61 +30,41 @@ class Expense {
     this.nextDueDate,
   });
 
-
-  factory Expense.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory Expense.fromJson(Map<String, dynamic> json) {
     final categoryValue = json['category'];
-
 
     String? categoryName;
 
-
     if (categoryValue is String) {
       categoryName = categoryValue;
-    } else if (categoryValue
-        is Map<String, dynamic>) {
-      categoryName =
-          categoryValue['name']?.toString();
+    } else if (categoryValue is Map<String, dynamic>) {
+      categoryName = JsonUtils.parseOptionalString(
+        categoryValue['name'],
+      );
     }
 
-
     return Expense(
-      id: json['id'] is int
-          ? json['id']
-          : int.parse(
-              json['id'].toString(),
-            ),
-      type: json['type']?.toString() ??
-          'EXPENSE',
-      amount:
-          (json['amount'] as num?)?.toDouble() ??
-              0,
-      description:
-          json['description']?.toString() ?? '',
-      date: json['date']?.toString() ?? '',
-      categoryId: json['categoryId'] is int
-          ? json['categoryId']
-          : int.tryParse(
-              json['categoryId']?.toString() ??
-                  '',
-            ),
+      id: JsonUtils.parseId(json['id']),
+      type: JsonUtils.parseString(
+        json['type'],
+        fallback: 'EXPENSE',
+      ),
+      amount: JsonUtils.parseDouble(json['amount']),
+      description: JsonUtils.parseString(json['description']),
+      date: JsonUtils.parseString(json['date']),
+      categoryId: JsonUtils.parseOptionalId(json['categoryId']),
       category: categoryName,
-      createdAt:
-          json['createdAt']?.toString(),
-      isRecurring:
-          json['isRecurring'] == true,
-      recurringFrequency: json[
-              'recurringFrequency']
-          ?.toString(),
-      recurringStartDate: json[
-              'recurringStartDate']
-          ?.toString(),
-      nextDueDate:
-          json['nextDueDate']?.toString(),
+      createdAt: JsonUtils.parseOptionalString(json['createdAt']),
+      isRecurring: JsonUtils.parseBool(json['isRecurring']),
+      recurringFrequency: JsonUtils.parseOptionalString(
+        json['recurringFrequency'],
+      ),
+      recurringStartDate: JsonUtils.parseOptionalString(
+        json['recurringStartDate'],
+      ),
+      nextDueDate: JsonUtils.parseOptionalString(json['nextDueDate']),
     );
   }
-
 
   Map<String, dynamic> toJson() {
     return {
@@ -95,10 +75,8 @@ class Expense {
       'date': date,
       'categoryId': categoryId,
       'isRecurring': isRecurring,
-      'recurringFrequency':
-          recurringFrequency,
-      'recurringStartDate':
-          recurringStartDate,
+      'recurringFrequency': recurringFrequency,
+      'recurringStartDate': recurringStartDate,
       'nextDueDate': nextDueDate,
     };
   }

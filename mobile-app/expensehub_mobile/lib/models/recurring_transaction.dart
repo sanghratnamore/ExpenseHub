@@ -1,5 +1,7 @@
+import '../utils/json_utils.dart';
+
 class RecurringTransaction {
-  final int? id;
+  final String? id;
   final String title;
   final double amount;
   final String type;
@@ -9,7 +11,6 @@ class RecurringTransaction {
   final DateTime startDate;
   final DateTime nextDueDate;
   final bool active;
-
 
   RecurringTransaction({
     this.id,
@@ -24,32 +25,44 @@ class RecurringTransaction {
     this.active = true,
   });
 
-
   factory RecurringTransaction.fromJson(
-      Map<String, dynamic> json) {
+    Map<String, dynamic> json,
+  ) {
     return RecurringTransaction(
-      id: json['id'] as int?,
-      title: json['title'] ?? '',
-      amount: (json['amount'] as num?)?.toDouble() ?? 0,
-      type: json['type'] ?? 'EXPENSE',
-      category: json['category'] ?? 'Other',
-      description: json['description'],
-      frequency: json['frequency'] ?? 'MONTHLY',
-      startDate: DateTime.parse(
-        json['startDate'] ??
-            DateTime.now().toIso8601String(),
+      id: JsonUtils.parseOptionalId(json['id']),
+      title: JsonUtils.parseString(json['title']),
+      amount: JsonUtils.parseDouble(json['amount']),
+      type: JsonUtils.parseString(
+        json['type'],
+        fallback: 'EXPENSE',
       ),
-      nextDueDate: DateTime.parse(
-        json['nextDueDate'] ??
-            DateTime.now().toIso8601String(),
+      category: JsonUtils.parseString(
+        json['category'],
+        fallback: 'Other',
       ),
-      active: json['active'] ?? true,
+      description: JsonUtils.parseOptionalString(json['description']),
+      frequency: JsonUtils.parseString(
+        json['frequency'],
+        fallback: 'MONTHLY',
+      ),
+      startDate: DateTime.tryParse(
+            JsonUtils.parseString(json['startDate']),
+          ) ??
+          DateTime.now(),
+      nextDueDate: DateTime.tryParse(
+            JsonUtils.parseString(json['nextDueDate']),
+          ) ??
+          DateTime.now(),
+      active: JsonUtils.parseBool(
+        json['active'],
+        fallback: true,
+      ),
     );
   }
 
-
   Map<String, dynamic> toJson() {
     return {
+      if (id != null) 'id': id,
       'title': title,
       'amount': amount,
       'type': type,

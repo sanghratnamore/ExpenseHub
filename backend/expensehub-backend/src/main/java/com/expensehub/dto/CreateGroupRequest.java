@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -19,7 +20,7 @@ public class CreateGroupRequest {
     private String description;
 
     @NotNull(message = "Creator user ID is required")
-    private Long createdBy;
+    private UUID  createdBy;
 
-    private List<Long> memberIds;
+    private List<UUID> memberIds;
 }

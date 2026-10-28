@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-
 import '../models/recurring_transaction.dart';
 import '../services/recurring_transaction_service.dart';
 import 'add_recurring_transaction_screen.dart';

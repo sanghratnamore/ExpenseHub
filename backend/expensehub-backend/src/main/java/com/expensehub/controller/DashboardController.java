@@ -3,6 +3,7 @@ package com.expensehub.controller;
 import com.expensehub.dto.DashboardResponse;
 import com.expensehub.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,7 +16,7 @@ public class DashboardController {
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<DashboardResponse> getDashboard(
-            @PathVariable Long userId,
+            @PathVariable UUID userId,
             @RequestParam int year,
             @RequestParam int month
     ) {
