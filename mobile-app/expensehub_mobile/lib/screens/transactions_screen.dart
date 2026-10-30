@@ -10,8 +10,13 @@ import '../widgets/eh_search_bar.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final String? initialFilter;
+  final String? initialRange;
 
-  const TransactionsScreen({super.key, this.initialFilter});
+  const TransactionsScreen({
+    super.key,
+    this.initialFilter,
+    this.initialRange,
+  });
 
   @override
   TransactionsScreenState createState() => TransactionsScreenState();
@@ -20,18 +25,32 @@ class TransactionsScreen extends StatefulWidget {
 class TransactionsScreenState extends State<TransactionsScreen> {
   final expenseService = ExpenseService();
   final searchController = TextEditingController();
+
   String searchQuery = '';
   List<Expense> expenses = [];
   bool isLoading = true;
   String? errorMessage;
 
   String selectedFilter = 'All';
+  String selectedRange = 'Year';
   DateTime selectedMonth = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    selectedFilter = widget.initialFilter ?? 'All';
+
+    final initialFilter = widget.initialFilter?.toUpperCase();
+
+    if (initialFilter == 'INCOME') {
+      selectedFilter = 'Income';
+    } else if (initialFilter == 'EXPENSE') {
+      selectedFilter = 'Expense';
+    }
+
+    if (widget.initialRange != null) {
+      selectedRange = widget.initialRange!;
+    }
+
     loadExpenses();
   }
 
@@ -66,43 +85,89 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
+  DateTime get rangeStart {
+    final now = DateTime.now();
+
+    switch (selectedRange) {
+      case 'Week':
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        return DateTime(monday.year, monday.month, monday.day);
+
+      case 'Month':
+        return DateTime(selectedMonth.year, selectedMonth.month, 1);
+
+      case 'Year':
+        return DateTime(selectedMonth.year, 1, 1);
+
+      default:
+        return DateTime(2000);
+    }
+  }
+
+  DateTime get rangeEnd {
+    final now = DateTime.now();
+
+    switch (selectedRange) {
+      case 'Week':
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final start = DateTime(monday.year, monday.month, monday.day);
+        return start.add(const Duration(days: 7));
+
+      case 'Month':
+        return DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
+
+      case 'Year':
+        return DateTime(selectedMonth.year + 1, 1, 1);
+
+      default:
+        return DateTime(2100);
+    }
+  }
+
   List<Expense> getFilteredExpenses() {
     List<Expense> result;
 
     if (selectedFilter == 'Income') {
-      result = expenses.where((e) => e.type.toUpperCase() == 'INCOME').toList();
+      result = expenses
+          .where((e) => e.type.toUpperCase() == 'INCOME')
+          .toList();
     } else if (selectedFilter == 'Expense') {
-      result = expenses.where((e) => e.type.toUpperCase() != 'INCOME').toList();
+      result = expenses
+          .where((e) => e.type.toUpperCase() != 'INCOME')
+          .toList();
     } else {
       result = List<Expense>.from(expenses);
     }
 
-    final monthTransactions = result.where((expense) {
+    final start = rangeStart;
+    final end = rangeEnd;
+
+    final rangeTransactions = result.where((expense) {
       final date = DateTime.tryParse(expense.date);
       if (date == null) return false;
 
-      return date.year == selectedMonth.year &&
-          date.month == selectedMonth.month;
+      return !date.isBefore(start) && date.isBefore(end);
     }).toList();
 
     final query = searchQuery.trim().toLowerCase();
 
     final filteredTransactions = query.isEmpty
-        ? monthTransactions
-        : monthTransactions.where((expense) {
+        ? rangeTransactions
+        : rangeTransactions.where((expense) {
             final description = expense.description.toLowerCase();
+            final category = (expense.category ?? '').toLowerCase();
 
-            return description.contains(query);
+            return description.contains(query) ||
+                category.contains(query);
           }).toList();
 
     filteredTransactions.sort((a, b) {
-      final timeA = DateTime.tryParse(a.createdAt ?? a.date);
+      final dateA = DateTime.tryParse(a.date);
+      final dateB = DateTime.tryParse(b.date);
 
-      final timeB = DateTime.tryParse(b.createdAt ?? b.date);
+      if (dateA == null || dateB == null) return 0;
 
-      if (timeA == null || timeB == null) return 0;
-
-      return timeB.compareTo(timeA);
+      return dateB.compareTo(dateA);
     });
 
     return filteredTransactions;
@@ -126,9 +191,9 @@ class TransactionsScreenState extends State<TransactionsScreen> {
 
       for (final word in text.split(RegExp(r'\s+'))) {
         final cleanWord = word.toLowerCase().replaceAll(
-          RegExp(r'[^a-z0-9]'),
-          '',
-        );
+              RegExp(r'[^a-z0-9]'),
+              '',
+            );
 
         if (cleanWord.length < 2) continue;
 
@@ -202,6 +267,91 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
+  Future<void> _openRangePicker() async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Select period',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              for (final range in ['Week', 'Month', 'Year', 'All'])
+                ListTile(
+                  leading: Icon(
+                    range == 'Week'
+                        ? Icons.date_range
+                        : range == 'Month'
+                            ? Icons.calendar_month
+                            : range == 'Year'
+                                ? Icons.calendar_today
+                                : Icons.all_inclusive,
+                    color: AppColors.primary,
+                  ),
+                  title: Text(range),
+                  trailing: selectedRange == range
+                      ? const Icon(Icons.check, color: AppColors.primary)
+                      : null,
+                  onTap: () => Navigator.pop(context, range),
+                ),
+              const SizedBox(height: 8),
+            ],
+            ),
+          );
+        },
+    );
+
+    if (picked == null || !mounted) return;
+
+    if (picked == 'Month' || picked == 'Year') {
+      final date = await showDatePicker(
+        context: context,
+        initialDate: selectedMonth,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now(),
+        initialDatePickerMode: DatePickerMode.year,
+      );
+
+      if (date != null) {
+        setState(() {
+          selectedMonth = date;
+          selectedRange = picked;
+        });
+      }
+
+      return;
+    }
+
+    setState(() {
+      selectedRange = picked;
+    });
+  }
+
+  String get rangeLabel {
+    switch (selectedRange) {
+      case 'Week':
+        return 'This week';
+      case 'Month':
+        return DateFormat('MMM yy').format(selectedMonth);
+      case 'Year':
+        return DateFormat('yyyy').format(selectedMonth);
+      default:
+        return 'All time';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredExpenses = getFilteredExpenses();
@@ -220,14 +370,12 @@ class TransactionsScreenState extends State<TransactionsScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null
-          ? Center(child: Text(errorMessage!))
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Column(
-                    children: [
-                      EhSearchBar(
+              ? Center(child: Text(errorMessage!))
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: EhSearchBar(
                         controller: searchController,
                         hintText: 'Search transactions...',
                         onChanged: (value) {
@@ -241,290 +389,233 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                           });
                         },
                       ),
-                    ],
-                  ),
-                ),
-
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              FilterChip(
-                                label: const Text('All'),
-                                selected: selectedFilter == 'All',
-                                visualDensity: VisualDensity.compact,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                onSelected: (_) {
-                                  setState(() {
-                                    selectedFilter = 'All';
-                                  });
-                                },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _filterChip('All'),
+                                  const SizedBox(width: 6),
+                                  _filterChip('Income'),
+                                  const SizedBox(width: 6),
+                                  _filterChip('Expense'),
+                                ],
                               ),
-                              const SizedBox(width: 6),
-                              FilterChip(
-                                label: const Text('Income'),
-                                selected: selectedFilter == 'Income',
-                                visualDensity: VisualDensity.compact,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                onSelected: (_) {
-                                  setState(() {
-                                    selectedFilter = 'Income';
-                                  });
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              FilterChip(
-                                label: const Text('Expense'),
-                                selected: selectedFilter == 'Expense',
-                                visualDensity: VisualDensity.compact,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                onSelected: (_) {
-                                  setState(() {
-                                    selectedFilter = 'Expense';
-                                  });
-                                },
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: selectedMonth,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime.now(),
-                            initialDatePickerMode: DatePickerMode.year,
-                          );
-
-                          if (picked != null) {
-                            setState(() {
-                              selectedMonth = picked;
-                            });
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.teal.shade50,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.teal.shade200),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.calendar_month,
-                                size: 16,
-                                color: Colors.teal,
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: _openRangePicker,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 7,
                               ),
-                              const SizedBox(width: 5),
-                              Text(
-                                DateFormat('MMM yy').format(selectedMonth),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.teal,
-                                ),
+                              decoration: BoxDecoration(
+                                color: Colors.teal.shade50,
+                                borderRadius: BorderRadius.circular(20),
+                                border:
+                                    Border.all(color: Colors.teal.shade200),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                Expanded(
-                  child: filteredExpenses.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: EhCard(
-                              padding: const EdgeInsets.all(28),
-                              child: Column(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(18),
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.primarySoft,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.receipt_long,
-                                      size: 34,
-                                      color: AppColors.primary,
-                                    ),
+                                  const Icon(
+                                    Icons.calendar_month,
+                                    size: 16,
+                                    color: Colors.teal,
                                   ),
-                                  AppSpacing.gapMd,
-                                  const Text(
-                                    'No transactions found',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  const Text(
-                                    'Try another month, search term, or filter.',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 13,
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    rangeLabel,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.teal,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                          itemCount: filteredExpenses.length,
-                          itemBuilder: (context, index) {
-                            final expense = filteredExpenses[index];
-                            final isIncome =
-                                expense.type.toUpperCase() == 'INCOME';
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: EhCard(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
-                                ),
-                                onTap: () => openTransaction(expense),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: isIncome
-                                            ? AppColors.income.withValues(
-                                                alpha: 0.12,
-                                              )
-                                            : AppColors.expense.withValues(
-                                                alpha: 0.12,
-                                              ),
-                                        borderRadius: BorderRadius.circular(15),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: filteredExpenses.isEmpty
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: EhCard(
+                                  padding: const EdgeInsets.all(28),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(18),
+                                        decoration: const BoxDecoration(
+                                          color: AppColors.primarySoft,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.receipt_long,
+                                          size: 34,
+                                          color: AppColors.primary,
+                                        ),
                                       ),
-                                      child: Icon(
-                                        isIncome
-                                            ? Icons.arrow_downward
-                                            : Icons.arrow_upward,
-                                        color: isIncome
-                                            ? AppColors.income
-                                            : AppColors.expense,
-                                        size: 20,
+                                      AppSpacing.gapMd,
+                                      const Text(
+                                        'No transactions found',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: AppColors.textPrimary,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  expense.description,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    color:
-                                                        AppColors.textPrimary,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (expense.isRecurring)
-                                                const Icon(
-                                                  Icons.repeat,
-                                                  size: 15,
-                                                  color: AppColors.primary,
-                                                ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            '${expense.category} • ${expense.date}',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                        ],
+                                      const SizedBox(height: 6),
+                                      const Text(
+                                        'Try another period, search term, or filter.',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 13,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: isIncome
-                                            ? AppColors.income
-                                            : AppColors.expense,
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            )
+                          : ListView.builder(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              itemCount: filteredExpenses.length,
+                              itemBuilder: (context, index) {
+                                final expense = filteredExpenses[index];
+                                final isIncome =
+                                    expense.type.toUpperCase() == 'INCOME';
+
+                                return Padding(
+                                  padding:
+                                      const EdgeInsets.only(bottom: 12),
+                                  child: EhCard(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 14,
+                                    ),
+                                    onTap: () => openTransaction(expense),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 44,
+                                          height: 44,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: isIncome
+                                                ? AppColors.income.withValues(
+                                                    alpha: 0.12)
+                                                : AppColors.expense.withValues(
+                                                    alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(15),
+                                          ),
+                                          child: Icon(
+                                            isIncome
+                                                ? Icons.arrow_downward
+                                                : Icons.arrow_upward,
+                                            color: isIncome
+                                                ? AppColors.income
+                                                : AppColors.expense,
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Text(
+                                                      expense.description,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow
+                                                          .ellipsis,
+                                                      style:
+                                                          const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: AppColors
+                                                            .textPrimary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (expense.isRecurring)
+                                                    const Icon(
+                                                      Icons.repeat,
+                                                      size: 15,
+                                                      color:
+                                                          AppColors.primary,
+                                                    ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '${expense.category ?? 'Uncategorized'} • ${expense.date}',
+                                                maxLines: 1,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors
+                                                      .textSecondary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: isIncome
+                                                ? AppColors.income
+                                                : AppColors.expense,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
     );
   }
-}
 
-class DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
+  Widget _filterChip(String label) {
+    final isSelected = selectedFilter == label;
 
-  const DetailRow({super.key, required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(label, style: TextStyle(color: Colors.grey.shade600)),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      onSelected: (_) {
+        setState(() {
+          selectedFilter = label;
+        });
+      },
     );
   }
 }

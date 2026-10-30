@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+
 import 'app_message.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import '../utils/app_route.dart';
+import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -53,11 +56,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      showAppMessage(context, message: 'Account created successfully');
-
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        fadeSlideRoute(
+          OtpVerificationScreen(email: emailController.text.trim()),
+        ),
       );
     } catch (error) {
       if (!mounted) return;

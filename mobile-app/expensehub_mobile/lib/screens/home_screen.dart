@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/auth_service.dart';
 import '../models/expense.dart';
 import '../services/expense_service.dart';
@@ -7,7 +8,6 @@ import '../theme/app_spacing.dart';
 import '../theme/eh_card.dart';
 import 'add_expense_screen.dart';
 import 'add_income_screen.dart';
-import 'transaction_list_screen.dart';
 import 'transactions_screen.dart';
 import '../services/group_service.dart';
 import '../models/group.dart';
@@ -25,8 +25,8 @@ class HomeScreen extends StatefulWidget {
     this.onOpenTransactions,
   });
 
-@override
-State<HomeScreen> createState() => HomeScreenState();
+  @override
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
 class HomeScreenState extends State<HomeScreen> {
@@ -149,20 +149,24 @@ class HomeScreenState extends State<HomeScreen> {
   List<Expense> getRangeExpenses() {
     final now = DateTime.now();
     DateTime startDate;
+    DateTime endDate;
 
     if (selectedRange == 'Week') {
       startDate = now.subtract(Duration(days: now.weekday - 1));
+      endDate = startDate.add(const Duration(days: 7));
     } else if (selectedRange == 'Year') {
       startDate = DateTime(now.year, 1, 1);
+      endDate = DateTime(now.year + 1, 1, 1);
     } else {
       startDate = DateTime(now.year, now.month, 1);
+      endDate = DateTime(now.year, now.month + 1, 1);
     }
 
     return expenses.where((expense) {
       final date = DateTime.tryParse(expense.date);
       if (date == null) return false;
 
-      return date.isAfter(startDate.subtract(const Duration(seconds: 1)));
+      return !date.isBefore(startDate) && date.isBefore(endDate);
     }).toList();
   }
 
@@ -205,7 +209,12 @@ class HomeScreenState extends State<HomeScreen> {
   void openTransactions(String filter) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => TransactionListScreen(type: filter)),
+      MaterialPageRoute(
+        builder: (_) => TransactionsScreen(
+          initialFilter: filter,
+          initialRange: selectedRange,
+        ),
+      ),
     );
   }
 

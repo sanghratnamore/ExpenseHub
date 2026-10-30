@@ -34,25 +34,25 @@ class Expense {
     final categoryValue = json['category'];
 
     String? categoryName;
+    String? categoryId;
 
     if (categoryValue is String) {
       categoryName = categoryValue;
     } else if (categoryValue is Map<String, dynamic>) {
-      categoryName = JsonUtils.parseOptionalString(
-        categoryValue['name'],
-      );
+      categoryName = JsonUtils.parseOptionalString(categoryValue['name']);
+      categoryId = JsonUtils.parseOptionalId(categoryValue['id']);
     }
 
     return Expense(
       id: JsonUtils.parseId(json['id']),
-      type: JsonUtils.parseString(
-        json['type'],
-        fallback: 'EXPENSE',
-      ),
+      type: JsonUtils.parseString(json['type'], fallback: 'EXPENSE'),
       amount: JsonUtils.parseDouble(json['amount']),
       description: JsonUtils.parseString(json['description']),
       date: JsonUtils.parseString(json['date']),
-      categoryId: JsonUtils.parseOptionalId(json['categoryId']),
+      categoryId:
+          categoryId ??
+          JsonUtils.parseOptionalId(json['categoryId']) ??
+          JsonUtils.parseOptionalId(json['category_id']),
       category: categoryName,
       createdAt: JsonUtils.parseOptionalString(json['createdAt']),
       isRecurring: JsonUtils.parseBool(json['isRecurring']),
