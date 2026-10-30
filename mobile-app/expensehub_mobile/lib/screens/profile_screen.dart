@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/friend.dart';
 import '../models/friend_request.dart';
 import '../services/auth_service.dart';
@@ -7,6 +8,8 @@ import 'account_information_screen.dart';
 import 'change_password_screen.dart';
 import 'friends_screen.dart';
 import 'login_screen.dart';
+import 'welcome_screen.dart';
+import '../utils/app_route.dart';
 
 const Color kPrimary = Color(0xFF0F766E);
 const Color kPrimarySoft = Color(0xFF14B8A6);
@@ -162,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      fadeSlideRoute(const WelcomeScreen()),
       (route) => false,
     );
   }

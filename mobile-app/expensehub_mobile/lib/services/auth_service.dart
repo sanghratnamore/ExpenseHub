@@ -138,6 +138,74 @@ class AuthService {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/verify-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email, 'otp': otp}),
+    );
+
+    final result = _handleResponse(response);
+
+    final token = result['token'];
+    final userId = result['id'];
+    final userName = result['name'] ?? email;
+
+    if (token != null) {
+      await _storage.write(key: 'jwt_token', value: token.toString());
+    }
+
+    if (userId != null) {
+      await _storage.write(key: 'user_id', value: userId.toString());
+    }
+
+    await _storage.write(key: 'user_name', value: userName.toString());
+    await _storage.write(key: 'user_email', value: email);
+
+    return result;
+  }
+
+  Future<Map<String, dynamic>> resendOtp({required String email}) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/resend-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> forgotPassword({required String email}) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'otp': otp,
+        'newPassword': newPassword,
+      }),
+    );
+
+    return _handleResponse(response);
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     final dynamic body = jsonDecode(response.body);
 

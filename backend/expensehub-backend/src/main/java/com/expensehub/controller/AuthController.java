@@ -13,8 +13,14 @@ import com.expensehub.dto.LoginResponse;
 import com.expensehub.dto.ChangePasswordRequest;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import com.expensehub.dto.ForgotPasswordRequest;
+import com.expensehub.dto.ResetPasswordRequest;
+import com.expensehub.service.EmailService;
+import com.expensehub.dto.VerifyOtpRequest;
+
+
 import java.util.Map;
-import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -60,6 +66,111 @@ public class AuthController {
                     .body(LoginResponse.builder()
                             .message(e.getMessage())
                             .build());
+        }
+    }
+
+    private final EmailService emailService;
+
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String token) {
+        try {
+            userService.verifyEmail(token);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Email verified successfully"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<?> resendVerification(
+            @RequestBody Map<String, String> request
+    ) {
+        try {
+            userService.resendVerificationEmail(request.get("email"));
+            return ResponseEntity.ok(Map.of(
+                    "message", "Verification email sent"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<LoginResponse> verifyOtp(
+            @Valid @RequestBody VerifyOtpRequest request
+    ) {
+        try {
+            LoginResponse response = userService.verifyOtpAndLogin(
+                    request.getEmail(),
+                    request.getOtp()
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(
+                    LoginResponse.builder()
+                            .message(e.getMessage())
+                            .build()
+            );
+        }
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendOtp(
+            @RequestBody Map<String, String> request
+    ) {
+        try {
+            userService.resendOtp(request.get("email"));
+            return ResponseEntity.ok(Map.of(
+                    "message", "A new OTP and verification link have been sent"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request
+    ) {
+        try {
+            userService.forgotPassword(request.getEmail());
+            return ResponseEntity.ok(Map.of(
+                    "message", "Password reset email sent"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        try {
+            userService.resetPassword(
+                    request.getEmail(),
+                    request.getOtp(),
+                    request.getNewPassword()
+            );
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Password reset successfully"
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage()
+            ));
         }
     }
 
