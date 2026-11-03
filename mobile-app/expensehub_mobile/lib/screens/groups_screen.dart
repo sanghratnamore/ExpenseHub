@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../utils/error_messages.dart';
 import '../models/group.dart';
 import '../services/group_service.dart';
 import 'group_details_screen.dart';
 import 'group_create_screen.dart';
 import 'group_join_screen.dart';
+import '../widgets/notification_bell_button.dart';
 
 const Color kPrimary = Color(0xFF0F766E);
 const Color kPrimarySoft = Color(0xFF14B8A6);
@@ -15,7 +17,9 @@ const Color kBorder = Color(0xFFE2E8F0);
 const Color kExpenseColor = Color(0xFFE11D48);
 
 class GroupsScreen extends StatefulWidget {
-  const GroupsScreen({super.key});
+  final bool showBackButton;
+
+  const GroupsScreen({super.key, this.showBackButton = false});
 
   @override
   State<GroupsScreen> createState() => _GroupsScreenState();
@@ -119,6 +123,12 @@ class _GroupsScreenState extends State<GroupsScreen> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kInk),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         title: const Text(
           'Groups',
           style: TextStyle(
@@ -128,54 +138,7 @@ class _GroupsScreenState extends State<GroupsScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        actions: [
-          GestureDetector(
-            onTap: () {
-              // Open notifications screen or sheet later
-            },
-            child: Container(
-              margin: const EdgeInsets.only(right: 20),
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: kBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  const Icon(
-                    Icons.notifications_none_rounded,
-                    size: 20,
-                    color: kInk,
-                  ),
-                  Positioned(
-                    right: -1,
-                    top: -1,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: kExpenseColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        actions: const [NotificationBellButton(), SizedBox(width: 20)],
       ),
       body: FutureBuilder<List<Group>>(
         future: _groupsFuture,
@@ -899,7 +862,6 @@ class _EmptyGroups extends StatelessWidget {
   }
 }
 
-
 class _NoSearchResults extends StatelessWidget {
   const _NoSearchResults();
 
@@ -989,7 +951,9 @@ class _JoinGroupSheetState extends State<_JoinGroupSheet> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(getFriendlyError(error).replaceAll('Exception: ', ''))),
+        SnackBar(
+          content: Text(getFriendlyError(error).replaceAll('Exception: ', '')),
+        ),
       );
     } finally {
       if (mounted) {

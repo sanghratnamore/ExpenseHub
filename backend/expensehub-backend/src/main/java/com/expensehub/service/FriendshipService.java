@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.expensehub.service.NotificationService;
+import com.expensehub.service.PushNotificationService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,8 @@ public class FriendshipService {
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final PushNotificationService pushNotificationService;
 
     private User currentUser() {
         String email = SecurityContextHolder.getContext()
@@ -114,6 +118,15 @@ public class FriendshipService {
             }
 
             if (existing.getStatus() == FriendshipStatus.PENDING) {
+
+                if (existing.getReceiver().getId().equals(me.getId())) {
+                    throw new RuntimeException(
+                            existing.getRequester().getName()
+                                    + " has already sent you a friend request. "
+                                    + "Check your friend requests."
+                    );
+                }
+
                 throw new RuntimeException(
                         "Friend request already sent"
                 );
@@ -125,6 +138,9 @@ public class FriendshipService {
             existing.setStatus(FriendshipStatus.PENDING);
 
             friendshipRepository.save(existing);
+
+            sendFriendRequestNotification(me, receiver);
+
             return;
         }
 
@@ -134,6 +150,32 @@ public class FriendshipService {
                         .receiver(receiver)
                         .status(FriendshipStatus.PENDING)
                         .build()
+        );
+
+        sendFriendRequestNotification(me, receiver);
+    }
+
+    private void sendFriendRequestNotification(
+            User sender,
+            User receiver
+    ) {
+        notificationService.createNotification(
+                receiver,
+                "FRIEND_REQUEST_RECEIVED",
+                "New friend request",
+                sender.getName() + " sent you a friend request.",
+                null,
+                null,
+                null
+        );
+
+        pushNotificationService.sendToUsers(
+                List.of(receiver.getId().toString()),
+                "New friend request",
+                sender.getName() + " sent you a friend request.",
+                null,
+                null,
+                "FRIEND_REQUEST_RECEIVED"
         );
     }
 
@@ -150,10 +192,31 @@ public class FriendshipService {
 
         friendship.setStatus(FriendshipStatus.ACCEPTED);
         friendshipRepository.save(friendship);
+
+        User sender = friendship.getRequester();
+
+        notificationService.createNotification(
+                sender,
+                "FRIEND_REQUEST_ACCEPTED",
+                "Friend request accepted",
+                me.getName() + " accepted your friend request.",
+                null,
+                null,
+                null
+        );
+
+        pushNotificationService.sendToUsers(
+                List.of(sender.getId().toString()),
+                "Friend request accepted",
+                me.getName() + " accepted your friend request.",
+                null,
+                null,
+                "FRIEND_REQUEST_ACCEPTED"
+        );
     }
 
     @Transactional
-    public void rejectRequest(UUID  requestId) {
+    public void rejectRequest(UUID requestId) {
         User me = currentUser();
 
         Friendship friendship = friendshipRepository.findById(requestId)
@@ -168,15 +231,41 @@ public class FriendshipService {
     }
 
     @Transactional
-    public void removeFriend(UUID  friendId) {
+    public void removeFriend(UUID friendId) {
         User me = currentUser();
 
-        friendshipRepository.findByRequesterIdAndReceiverId(me.getId(), friendId)
+        Friendship friendship = friendshipRepository
+                .findByRequesterIdAndReceiverId(me.getId(), friendId)
                 .or(() -> friendshipRepository.findByRequesterIdAndReceiverId(
                         friendId,
                         me.getId()
                 ))
-                .ifPresent(friendshipRepository::delete);
+                .orElseThrow(() -> new RuntimeException("Friend not found"));
+
+        User removedUser = friendship.getRequester().getId().equals(me.getId())
+                ? friendship.getReceiver()
+                : friendship.getRequester();
+
+        friendshipRepository.delete(friendship);
+
+        notificationService.createNotification(
+                removedUser,
+                "FRIEND_REMOVED",
+                "Friend removed",
+                me.getName() + " removed you from their friends.",
+                null,
+                null,
+                null
+        );
+
+        pushNotificationService.sendToUsers(
+                List.of(removedUser.getId().toString()),
+                "Friend removed",
+                me.getName() + " removed you from their friends.",
+                null,
+                null,
+                "FRIEND_REMOVED"
+        );
     }
 
     private FriendRequestResponse toRequestResponse(Friendship friendship) {

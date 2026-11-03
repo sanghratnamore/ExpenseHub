@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/friend_service.dart';
 
 const Color kPrimary = Color(0xFF0F766E);
@@ -60,7 +61,9 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
       if (!mounted) return;
 
       setState(() => isSending = false);
-      _showMessage(error.toString(), isError: true);
+      final message = error.toString().replaceFirst('Exception: ', '');
+
+      _showMessage(message, isError: true);
     }
   }
 
@@ -69,9 +72,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
       SnackBar(
         backgroundColor: isError ? kDanger : kPrimary,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: Text(message),
       ),
     );
@@ -86,10 +87,7 @@ class _AddFriendScreenState extends State<AddFriendScreen> {
         elevation: 0,
         title: const Text(
           'Add friend',
-          style: TextStyle(
-            color: kInk,
-            fontWeight: FontWeight.w900,
-          ),
+          style: TextStyle(color: kInk, fontWeight: FontWeight.w900),
         ),
       ),
       body: SingleChildScrollView(

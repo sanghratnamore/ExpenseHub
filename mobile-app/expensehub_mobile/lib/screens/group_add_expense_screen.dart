@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../utils/error_messages.dart';
 import '../models/category.dart';
 import '../models/group.dart';
@@ -197,9 +198,9 @@ class _GroupAddExpenseScreenState extends State<GroupAddExpenseScreen> {
                     } catch (error) {
                       if (!mounted) return;
 
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(getFriendlyError(error))));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(getFriendlyError(error))),
+                      );
                     }
                   },
                   style: FilledButton.styleFrom(
@@ -542,6 +543,19 @@ class _GroupAddExpenseScreenState extends State<GroupAddExpenseScreen> {
               selectedMemberIds: _selectedMemberIds,
               isMultiSelect: true,
               onToggleMember: _toggleMember,
+              onSelectAll: (selectAll) {
+                setState(() {
+                  if (selectAll) {
+                    _selectedMemberIds.clear();
+
+                    for (final member in members) {
+                      _selectedMemberIds.add(member.id.toString());
+                    }
+                  } else {
+                    _selectedMemberIds.clear();
+                  }
+                });
+              },
             ),
 
             const SizedBox(height: 28),
@@ -884,6 +898,7 @@ class _MemberPickerSection extends StatefulWidget {
   final List<String> selectedMemberIds;
   final bool isMultiSelect;
   final ValueChanged<String> onToggleMember;
+  final ValueChanged<bool>? onSelectAll;
 
   const _MemberPickerSection({
     required this.title,
@@ -893,6 +908,7 @@ class _MemberPickerSection extends StatefulWidget {
     required this.selectedMemberIds,
     required this.isMultiSelect,
     required this.onToggleMember,
+    this.onSelectAll,
   });
 
   @override
@@ -985,6 +1001,51 @@ class _MemberPickerSectionState extends State<_MemberPickerSection> {
                 ),
               ),
               const Spacer(),
+
+              if (widget.isMultiSelect && widget.onSelectAll != null)
+                GestureDetector(
+                  onTap: () {
+                    final allSelected =
+                        widget.selectedMemberIds.length ==
+                        widget.members.length;
+
+                    widget.onSelectAll!(!allSelected);
+                  },
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color:
+                          widget.selectedMemberIds.length ==
+                              widget.members.length
+                          ? kPrimary
+                          : kSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color:
+                            widget.selectedMemberIds.length ==
+                                widget.members.length
+                            ? kPrimary
+                            : kBorder,
+                      ),
+                    ),
+                    child: Icon(
+                      widget.selectedMemberIds.length == widget.members.length
+                          ? Icons.deselect_rounded
+                          : Icons.select_all_rounded,
+                      size: 16,
+                      color:
+                          widget.selectedMemberIds.length ==
+                              widget.members.length
+                          ? Colors.white
+                          : kPrimary,
+                    ),
+                  ),
+                ),
+
+              const SizedBox(width: 8),
+
               GestureDetector(
                 onTap: _toggleSearch,
                 child: Container(

@@ -14,6 +14,7 @@ import com.expensehub.dto.ChangePasswordRequest;
 import com.expensehub.security.JwtService;
 import com.expensehub.service.EmailService;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -267,6 +268,27 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setResetPasswordToken(null);
         user.setResetPasswordTokenExpiry(null);
+        userRepository.save(user);
+    }
+
+    public BigDecimal getMonthlyBudget(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        return user.getMonthlyBudget() == null
+                ? BigDecimal.ZERO
+                : user.getMonthlyBudget();
+    }
+
+    public void updateMonthlyBudget(String email, BigDecimal budget) {
+        if (budget == null || budget.compareTo(BigDecimal.ZERO) < 0) {
+            throw new RuntimeException("Invalid budget amount");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setMonthlyBudget(budget);
         userRepository.save(user);
     }
 

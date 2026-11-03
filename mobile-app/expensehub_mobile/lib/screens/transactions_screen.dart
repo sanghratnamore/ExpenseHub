@@ -1,12 +1,14 @@
 import 'package:expensehub_mobile/theme/eh_card.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/expense_service.dart';
+
 import '../models/expense.dart';
+import '../services/expense_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
-import 'transaction_details_sheet.dart';
 import '../widgets/eh_search_bar.dart';
+import 'transaction_details_sheet.dart';
+import '../widgets/notification_bell_button.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final String? initialFilter;
@@ -19,10 +21,12 @@ class TransactionsScreen extends StatefulWidget {
   });
 
   @override
-  TransactionsScreenState createState() => TransactionsScreenState();
+  TransactionsScreenState createState() =>
+      TransactionsScreenState();
 }
 
-class TransactionsScreenState extends State<TransactionsScreen> {
+class TransactionsScreenState
+    extends State<TransactionsScreen> {
   final expenseService = ExpenseService();
   final searchController = TextEditingController();
 
@@ -39,7 +43,8 @@ class TransactionsScreenState extends State<TransactionsScreen> {
   void initState() {
     super.initState();
 
-    final initialFilter = widget.initialFilter?.toUpperCase();
+    final initialFilter =
+        widget.initialFilter?.toUpperCase();
 
     if (initialFilter == 'INCOME') {
       selectedFilter = 'Income';
@@ -67,7 +72,8 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     });
 
     try {
-      final result = await expenseService.getExpenses();
+      final result =
+          await expenseService.getExpenses();
 
       if (!mounted) return;
 
@@ -85,19 +91,48 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     }
   }
 
+ DateTime? getTransactionSortTime(Expense expense) {
+  final created = expense.createdAt;
+
+  if (created != null && created.isNotEmpty) {
+    final parsedCreated = DateTime.tryParse(created);
+
+    if (parsedCreated != null) {
+      return parsedCreated;
+    }
+  }
+
+  return DateTime.tryParse(expense.date);
+}
+
   DateTime get rangeStart {
     final now = DateTime.now();
 
     switch (selectedRange) {
       case 'Week':
-        final monday = now.subtract(Duration(days: now.weekday - 1));
-        return DateTime(monday.year, monday.month, monday.day);
+        final monday = now.subtract(
+          Duration(days: now.weekday - 1),
+        );
+
+        return DateTime(
+          monday.year,
+          monday.month,
+          monday.day,
+        );
 
       case 'Month':
-        return DateTime(selectedMonth.year, selectedMonth.month, 1);
+        return DateTime(
+          selectedMonth.year,
+          selectedMonth.month,
+          1,
+        );
 
       case 'Year':
-        return DateTime(selectedMonth.year, 1, 1);
+        return DateTime(
+          selectedMonth.year,
+          1,
+          1,
+        );
 
       default:
         return DateTime(2000);
@@ -109,15 +144,31 @@ class TransactionsScreenState extends State<TransactionsScreen> {
 
     switch (selectedRange) {
       case 'Week':
-        final monday = now.subtract(Duration(days: now.weekday - 1));
-        final start = DateTime(monday.year, monday.month, monday.day);
+        final monday = now.subtract(
+          Duration(days: now.weekday - 1),
+        );
+
+        final start = DateTime(
+          monday.year,
+          monday.month,
+          monday.day,
+        );
+
         return start.add(const Duration(days: 7));
 
       case 'Month':
-        return DateTime(selectedMonth.year, selectedMonth.month + 1, 1);
+        return DateTime(
+          selectedMonth.year,
+          selectedMonth.month + 1,
+          1,
+        );
 
       case 'Year':
-        return DateTime(selectedMonth.year + 1, 1, 1);
+        return DateTime(
+          selectedMonth.year + 1,
+          1,
+          1,
+        );
 
       default:
         return DateTime(2100);
@@ -129,11 +180,17 @@ class TransactionsScreenState extends State<TransactionsScreen> {
 
     if (selectedFilter == 'Income') {
       result = expenses
-          .where((e) => e.type.toUpperCase() == 'INCOME')
+          .where(
+            (e) =>
+                e.type.toUpperCase() == 'INCOME',
+          )
           .toList();
     } else if (selectedFilter == 'Expense') {
       result = expenses
-          .where((e) => e.type.toUpperCase() != 'INCOME')
+          .where(
+            (e) =>
+                e.type.toUpperCase() != 'INCOME',
+          )
           .toList();
     } else {
       result = List<Expense>.from(expenses);
@@ -144,9 +201,11 @@ class TransactionsScreenState extends State<TransactionsScreen> {
 
     final rangeTransactions = result.where((expense) {
       final date = DateTime.tryParse(expense.date);
+
       if (date == null) return false;
 
-      return !date.isBefore(start) && date.isBefore(end);
+      return !date.isBefore(start) &&
+          date.isBefore(end);
     }).toList();
 
     final query = searchQuery.trim().toLowerCase();
@@ -154,20 +213,26 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     final filteredTransactions = query.isEmpty
         ? rangeTransactions
         : rangeTransactions.where((expense) {
-            final description = expense.description.toLowerCase();
-            final category = (expense.category ?? '').toLowerCase();
+            final description =
+                expense.description.toLowerCase();
+
+            final category =
+                (expense.category ?? '').toLowerCase();
 
             return description.contains(query) ||
                 category.contains(query);
           }).toList();
 
     filteredTransactions.sort((a, b) {
-      final dateA = DateTime.tryParse(a.date);
-      final dateB = DateTime.tryParse(b.date);
+      final timeA = getTransactionSortTime(a);
+      final timeB = getTransactionSortTime(b);
 
-      if (dateA == null || dateB == null) return 0;
+      if (timeA == null || timeB == null) {
+        return 0;
+      }
 
-      return dateB.compareTo(dateA);
+      // Newest created transaction first
+      return timeB.compareTo(timeA);
     });
 
     return filteredTransactions;
@@ -189,8 +254,10 @@ class TransactionsScreenState extends State<TransactionsScreen> {
         expense.amount.toString(),
       ].join(' ');
 
-      for (final word in text.split(RegExp(r'\s+'))) {
-        final cleanWord = word.toLowerCase().replaceAll(
+      for (final word
+          in text.split(RegExp(r'\s+'))) {
+        final cleanWord = word.toLowerCase()
+            .replaceAll(
               RegExp(r'[^a-z0-9]'),
               '',
             );
@@ -218,7 +285,9 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     return suggestions.take(8).toList();
   }
 
-  Future<void> openTransaction(Expense expense) async {
+  Future<void> openTransaction(
+    Expense expense,
+  ) async {
     await showTransactionDetailsSheet(
       context: context,
       expense: expense,
@@ -226,21 +295,30 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  Future<void> deleteTransaction(Expense expense) async {
+  Future<void> deleteTransaction(
+    Expense expense,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete transaction?'),
-          content: const Text('This transaction will be permanently deleted.'),
+          title:
+              const Text('Delete transaction?'),
+          content: const Text(
+            'This transaction will be permanently deleted.',
+          ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
+              onPressed: () =>
+                  Navigator.pop(context, false),
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () =>
+                  Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
               child: const Text('Delete'),
             ),
           ],
@@ -251,19 +329,28 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     if (confirmed != true) return;
 
     try {
-      await expenseService.deleteExpense(expense.id);
+      await expenseService.deleteExpense(
+        expense.id,
+      );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Transaction deleted')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Transaction deleted'),
+        ),
+      );
 
       loadExpenses();
     } catch (error) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Delete failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text('Delete failed: $error'),
+        ),
+      );
     }
   }
 
@@ -271,7 +358,9 @@ class TransactionsScreenState extends State<TransactionsScreen> {
     final picked = await showModalBottomSheet<String>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       builder: (context) {
         return SafeArea(
@@ -288,7 +377,12 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                 ),
               ),
-              for (final range in ['Week', 'Month', 'Year', 'All'])
+              for (final range in [
+                'Week',
+                'Month',
+                'Year',
+                'All'
+              ])
                 ListTile(
                   leading: Icon(
                     range == 'Week'
@@ -302,15 +396,19 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                   ),
                   title: Text(range),
                   trailing: selectedRange == range
-                      ? const Icon(Icons.check, color: AppColors.primary)
+                      ? const Icon(
+                          Icons.check,
+                          color: AppColors.primary,
+                        )
                       : null,
-                  onTap: () => Navigator.pop(context, range),
+                  onTap: () =>
+                      Navigator.pop(context, range),
                 ),
               const SizedBox(height: 8),
             ],
-            ),
-          );
-        },
+          ),
+        );
+      },
     );
 
     if (picked == null || !mounted) return;
@@ -344,9 +442,11 @@ class TransactionsScreenState extends State<TransactionsScreen> {
       case 'Week':
         return 'This week';
       case 'Month':
-        return DateFormat('MMM yy').format(selectedMonth);
+        return DateFormat('MMM yy')
+            .format(selectedMonth);
       case 'Year':
-        return DateFormat('yyyy').format(selectedMonth);
+        return DateFormat('yyyy')
+            .format(selectedMonth);
       default:
         return 'All time';
     }
@@ -354,7 +454,8 @@ class TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredExpenses = getFilteredExpenses();
+    final filteredExpenses =
+        getFilteredExpenses();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -364,20 +465,38 @@ class TransactionsScreenState extends State<TransactionsScreen> {
         elevation: 0,
         title: const Text(
           'History',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        actions : const [
+          NotificationBellButton(),
+          SizedBox(width: 8),
+        ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
           : errorMessage != null
-              ? Center(child: Text(errorMessage!))
+              ? Center(
+                  child: Text(errorMessage!),
+                )
               : Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      padding:
+                          const EdgeInsets.fromLTRB(
+                        16,
+                        16,
+                        16,
+                        8,
+                      ),
                       child: EhSearchBar(
                         controller: searchController,
-                        hintText: 'Search transactions...',
+                        hintText:
+                            'Search transactions...',
                         onChanged: (value) {
                           setState(() {
                             searchQuery = value;
@@ -391,19 +510,29 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      padding:
+                          const EdgeInsets.fromLTRB(
+                        16,
+                        0,
+                        16,
+                        8,
+                      ),
                       child: Row(
                         children: [
                           Expanded(
                             child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
+                              scrollDirection:
+                                  Axis.horizontal,
                               child: Row(
                                 children: [
                                   _filterChip('All'),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(
+                                      width: 6),
                                   _filterChip('Income'),
-                                  const SizedBox(width: 6),
-                                  _filterChip('Expense'),
+                                  const SizedBox(
+                                      width: 6),
+                                  _filterChip(
+                                      'Expense'),
                                 ],
                               ),
                             ),
@@ -412,31 +541,44 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                           GestureDetector(
                             onTap: _openRangePicker,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
+                              padding: const EdgeInsets
+                                  .symmetric(
                                 horizontal: 10,
                                 vertical: 7,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.teal.shade50,
-                                borderRadius: BorderRadius.circular(20),
-                                border:
-                                    Border.all(color: Colors.teal.shade200),
+                                color: Colors
+                                    .teal.shade50,
+                                borderRadius:
+                                    BorderRadius.circular(
+                                        20),
+                                border: Border.all(
+                                  color: Colors
+                                      .teal.shade200,
+                                ),
                               ),
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
+                                mainAxisSize:
+                                    MainAxisSize.min,
                                 children: [
                                   const Icon(
-                                    Icons.calendar_month,
+                                    Icons
+                                        .calendar_month,
                                     size: 16,
                                     color: Colors.teal,
                                   ),
-                                  const SizedBox(width: 5),
+                                  const SizedBox(
+                                      width: 5),
                                   Text(
                                     rangeLabel,
-                                    style: const TextStyle(
+                                    style:
+                                        const TextStyle(
                                       fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.teal,
+                                      fontWeight:
+                                          FontWeight
+                                              .w600,
+                                      color:
+                                          Colors.teal,
                                     ),
                                   ),
                                 ],
@@ -450,39 +592,60 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                       child: filteredExpenses.isEmpty
                           ? Center(
                               child: Padding(
-                                padding: const EdgeInsets.all(20),
+                                padding:
+                                    const EdgeInsets.all(
+                                        20),
                                 child: EhCard(
-                                  padding: const EdgeInsets.all(28),
+                                  padding:
+                                      const EdgeInsets
+                                          .all(28),
                                   child: Column(
-                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisSize:
+                                        MainAxisSize.min,
                                     children: [
                                       Container(
-                                        padding: const EdgeInsets.all(18),
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.primarySoft,
-                                          shape: BoxShape.circle,
+                                        padding:
+                                            const EdgeInsets
+                                                .all(18),
+                                        decoration:
+                                            const BoxDecoration(
+                                          color: AppColors
+                                              .primarySoft,
+                                          shape: BoxShape
+                                              .circle,
                                         ),
-                                        child: const Icon(
-                                          Icons.receipt_long,
+                                        child:
+                                            const Icon(
+                                          Icons
+                                              .receipt_long,
                                           size: 34,
-                                          color: AppColors.primary,
+                                          color: AppColors
+                                              .primary,
                                         ),
                                       ),
                                       AppSpacing.gapMd,
                                       const Text(
                                         'No transactions found',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
+                                        style:
+                                            TextStyle(
+                                          fontWeight:
+                                              FontWeight
+                                                  .bold,
                                           fontSize: 16,
-                                          color: AppColors.textPrimary,
+                                          color: AppColors
+                                              .textPrimary,
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
+                                      const SizedBox(
+                                          height: 6),
                                       const Text(
                                         'Try another period, search term, or filter.',
-                                        textAlign: TextAlign.center,
+                                        textAlign:
+                                            TextAlign
+                                                .center,
                                         style: TextStyle(
-                                          color: AppColors.textSecondary,
+                                          color: AppColors
+                                              .textSecondary,
                                           fontSize: 13,
                                         ),
                                       ),
@@ -492,103 +655,161 @@ class TransactionsScreenState extends State<TransactionsScreen> {
                               ),
                             )
                           : ListView.builder(
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              itemCount: filteredExpenses.length,
-                              itemBuilder: (context, index) {
-                                final expense = filteredExpenses[index];
+                              padding: const EdgeInsets
+                                  .fromLTRB(
+                                16,
+                                0,
+                                16,
+                                16,
+                              ),
+                              itemCount:
+                                  filteredExpenses
+                                      .length,
+                              itemBuilder:
+                                  (context, index) {
+                                final expense =
+                                    filteredExpenses[
+                                        index];
+
                                 final isIncome =
-                                    expense.type.toUpperCase() == 'INCOME';
+                                    expense.type
+                                            .toUpperCase() ==
+                                        'INCOME';
 
                                 return Padding(
                                   padding:
-                                      const EdgeInsets.only(bottom: 12),
+                                      const EdgeInsets
+                                          .only(
+                                    bottom: 12,
+                                  ),
                                   child: EhCard(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: const EdgeInsets
+                                        .symmetric(
                                       horizontal: 16,
                                       vertical: 14,
                                     ),
-                                    onTap: () => openTransaction(expense),
+                                    onTap: () =>
+                                        openTransaction(
+                                            expense),
                                     child: Row(
                                       children: [
                                         Container(
                                           width: 44,
                                           height: 44,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
+                                          alignment:
+                                              Alignment
+                                                  .center,
+                                          decoration:
+                                              BoxDecoration(
                                             color: isIncome
-                                                ? AppColors.income.withValues(
-                                                    alpha: 0.12)
-                                                : AppColors.expense.withValues(
-                                                    alpha: 0.12),
+                                                ? AppColors
+                                                    .income
+                                                    .withValues(
+                                                  alpha:
+                                                      0.12,
+                                                )
+                                                : AppColors
+                                                    .expense
+                                                    .withValues(
+                                                  alpha:
+                                                      0.12,
+                                                ),
                                             borderRadius:
-                                                BorderRadius.circular(15),
+                                                BorderRadius
+                                                    .circular(
+                                                        15),
                                           ),
                                           child: Icon(
                                             isIncome
-                                                ? Icons.arrow_downward
-                                                : Icons.arrow_upward,
+                                                ? Icons
+                                                    .arrow_downward
+                                                : Icons
+                                                    .arrow_upward,
                                             color: isIncome
-                                                ? AppColors.income
-                                                : AppColors.expense,
+                                                ? AppColors
+                                                    .income
+                                                : AppColors
+                                                    .expense,
                                             size: 20,
                                           ),
                                         ),
-                                        const SizedBox(width: 14),
+                                        const SizedBox(
+                                            width: 14),
                                         Expanded(
-                                          child: Column(
+                                          child:
+                                              Column(
                                             crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                                CrossAxisAlignment
+                                                    .start,
                                             children: [
                                               Row(
                                                 children: [
                                                   Expanded(
-                                                    child: Text(
-                                                      expense.description,
-                                                      maxLines: 1,
-                                                      overflow: TextOverflow
-                                                          .ellipsis,
+                                                    child:
+                                                        Text(
+                                                      expense
+                                                          .description,
+                                                      maxLines:
+                                                          1,
+                                                      overflow:
+                                                          TextOverflow
+                                                              .ellipsis,
                                                       style:
                                                           const TextStyle(
                                                         fontWeight:
                                                             FontWeight.w600,
-                                                        color: AppColors
-                                                            .textPrimary,
+                                                        color:
+                                                            AppColors.textPrimary,
                                                       ),
                                                     ),
                                                   ),
-                                                  if (expense.isRecurring)
+                                                  if (expense
+                                                      .isRecurring)
                                                     const Icon(
-                                                      Icons.repeat,
-                                                      size: 15,
+                                                      Icons
+                                                          .repeat,
+                                                      size:
+                                                          15,
                                                       color:
                                                           AppColors.primary,
                                                     ),
                                                 ],
                                               ),
-                                              const SizedBox(height: 4),
+                                              const SizedBox(
+                                                  height:
+                                                      4),
                                               Text(
                                                 '${expense.category ?? 'Uncategorized'} • ${expense.date}',
-                                                maxLines: 1,
+                                                maxLines:
+                                                    1,
                                                 overflow:
-                                                    TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: AppColors
-                                                      .textSecondary,
+                                                    TextOverflow
+                                                        .ellipsis,
+                                                style:
+                                                    const TextStyle(
+                                                  fontSize:
+                                                      12,
+                                                  color:
+                                                      AppColors.textSecondary,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(width: 10),
+                                        const SizedBox(
+                                            width: 10),
                                         Text(
                                           '${isIncome ? '+' : '-'}₹${expense.amount.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
+                                          style:
+                                              TextStyle(
+                                            fontWeight:
+                                                FontWeight
+                                                    .bold,
                                             color: isIncome
-                                                ? AppColors.income
-                                                : AppColors.expense,
+                                                ? AppColors
+                                                    .income
+                                                : AppColors
+                                                    .expense,
                                           ),
                                         ),
                                       ],
@@ -610,7 +831,8 @@ class TransactionsScreenState extends State<TransactionsScreen> {
       label: Text(label),
       selected: isSelected,
       visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      materialTapTargetSize:
+          MaterialTapTargetSize.shrinkWrap,
       onSelected: (_) {
         setState(() {
           selectedFilter = label;
@@ -639,7 +861,9 @@ class DetailCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: Colors.grey.shade200,
+        ),
       ),
       child: Row(
         children: [
@@ -649,16 +873,24 @@ class DetailCard extends StatelessWidget {
               color: Colors.teal.shade50,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.teal.shade700, size: 20),
+            child: Icon(
+              icon,
+              color: Colors.teal.shade700,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(

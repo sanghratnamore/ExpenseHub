@@ -14,6 +14,12 @@ class Expense {
   final String? recurringFrequency;
   final String? recurringStartDate;
   final String? nextDueDate;
+  final String? updatedByName;
+  final DateTime? updatedAt;
+  final int version;
+  final bool isDeleted;
+  final String? deletedByName;
+  final DateTime? deletedAt;
 
   Expense({
     required this.id,
@@ -28,6 +34,12 @@ class Expense {
     this.recurringFrequency,
     this.recurringStartDate,
     this.nextDueDate,
+    this.updatedByName,
+    this.updatedAt,
+    this.version = 1,
+    this.isDeleted = false,
+    this.deletedByName,
+    this.deletedAt,
   });
 
   factory Expense.fromJson(Map<String, dynamic> json) {
@@ -54,7 +66,7 @@ class Expense {
           JsonUtils.parseOptionalId(json['categoryId']) ??
           JsonUtils.parseOptionalId(json['category_id']),
       category: categoryName,
-      createdAt: JsonUtils.parseOptionalString(json['createdAt']),
+      createdAt: parseCreatedAtValue(json['createdAt']),
       isRecurring: JsonUtils.parseBool(json['isRecurring']),
       recurringFrequency: JsonUtils.parseOptionalString(
         json['recurringFrequency'],
@@ -63,7 +75,47 @@ class Expense {
         json['recurringStartDate'],
       ),
       nextDueDate: JsonUtils.parseOptionalString(json['nextDueDate']),
+
+      updatedByName: json['updatedByName'],
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      version: json['version'] ?? 1,
+      isDeleted: json['isDeleted'] ?? false,
+      deletedByName: json['deletedByName'],
+      deletedAt: json['deletedAt'] != null
+          ? DateTime.parse(json['deletedAt'])
+          : null,
     );
+  }
+
+  static String? parseCreatedAtValue(dynamic value) {
+    if (value == null) return null;
+
+    if (value is List && value.isNotEmpty) {
+      // Spring Boot can return [year, month, day, hour, minute, second]
+      if (value.length >= 3) {
+        final year = value[0];
+        final month = value[1].toString().padLeft(2, '0');
+        final day = value[2].toString().padLeft(2, '0');
+
+        String hour = '00';
+        String minute = '00';
+        String second = '00';
+
+        if (value.length >= 6) {
+          hour = value[3].toString().padLeft(2, '0');
+          minute = value[4].toString().padLeft(2, '0');
+          second = value[5].toString().padLeft(2, '0');
+        }
+
+        return '$year-$month-$day T$hour:$minute:$second'.replaceAll(' T', 'T');
+      }
+
+      return value.join('-');
+    }
+
+    return value.toString();
   }
 
   Map<String, dynamic> toJson() {

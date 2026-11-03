@@ -36,6 +36,10 @@ class GroupExpenseDetail {
   final String? categoryName;
   final List<GroupExpenseSplit> splits;
 
+  final String? updatedByName;
+  final DateTime? updatedAt;
+  final int version;
+
   GroupExpenseDetail({
     required this.id,
     required this.description,
@@ -46,6 +50,9 @@ class GroupExpenseDetail {
     required this.splits,
     this.categoryId,
     this.categoryName,
+    this.updatedByName,
+    this.updatedAt,
+    this.version = 1,
   });
 
   factory GroupExpenseDetail.fromJson(
@@ -67,6 +74,14 @@ class GroupExpenseDetail {
             ),
           )
           .toList(),
+
+      updatedByName: JsonUtils.parseOptionalString(
+        json['updatedByName'],
+      ),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      version: json['version'] ?? 1,
     );
   }
 }

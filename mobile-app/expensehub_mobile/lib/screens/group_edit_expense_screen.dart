@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../utils/error_messages.dart';
+
 import '../models/category.dart';
 import '../models/group.dart';
 import '../models/group_expense_detail.dart';
@@ -272,16 +272,23 @@ class _GroupEditExpenseScreenState extends State<GroupEditExpenseScreen> {
         paidBy: _paidById!,
         categoryId: _selectedCategoryId!,
         memberIds: _selectedMemberIds,
+        version: widget.expense.version,
       );
 
       if (!mounted) return;
 
       Navigator.pop(context, true);
-    } catch (error) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(getFriendlyError(error))));
+      await _groupService.updateGroupExpense(
+        groupId: widget.group.id,
+        expenseId: widget.expense.id,
+        description: _descriptionController.text.trim(),
+        amount: double.parse(_amountController.text.trim()),
+        expenseDate: _selectedDate.toIso8601String().substring(0, 10),
+        paidBy: _paidById!,
+        categoryId: _selectedCategoryId!,
+        memberIds: _selectedMemberIds,
+        version: widget.expense.version,
+      );
     } finally {
       if (mounted) {
         setState(() {

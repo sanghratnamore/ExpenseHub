@@ -71,4 +71,33 @@ public class RecurringTransactionController {
                 "Recurring transaction deleted"
         );
     }
+
+    @PutMapping("/{id}/pause")
+    public ResponseEntity<String> pauseRecurringTransaction(
+            @PathVariable UUID id
+    ) {
+        recurringTransactionService.pauseRecurringTransaction(id);
+        return ResponseEntity.ok("Recurring transaction paused");
+    }
+
+    @PutMapping("/{id}/resume")
+    public ResponseEntity<String> resumeRecurringTransaction(
+            @PathVariable UUID id
+    ) {
+        recurringTransactionService.resumeRecurringTransaction(id);
+        return ResponseEntity.ok("Recurring transaction resumed");
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<RecurringTransaction> updateRecurringTransaction(
+            @PathVariable UUID id,
+            @RequestBody RecurringTransactionRequest request
+    ) {
+        return ResponseEntity.ok(
+                recurringTransactionService.updateRecurringTransaction(
+                        id,
+                        request
+                )
+        );
+    }
 }

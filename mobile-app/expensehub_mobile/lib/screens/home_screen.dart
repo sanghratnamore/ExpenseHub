@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
@@ -12,6 +14,10 @@ import 'transactions_screen.dart';
 import '../services/group_service.dart';
 import '../models/group.dart';
 import 'group_details_screen.dart';
+import '../services/app_notification_service.dart';
+import 'notifications_screen.dart';
+import 'recurring_transactions_screen.dart';
+import '../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final ValueChanged<Expense>? onTransactionSelected;
@@ -33,6 +39,9 @@ class HomeScreenState extends State<HomeScreen> {
   final AuthService authService = AuthService();
   final ExpenseService expenseService = ExpenseService();
   final GroupService groupService = GroupService();
+  final NotificationService notificationService = NotificationService();
+  final AppNotificationService appNotificationService =
+      AppNotificationService();
 
   List<Group> groups = [];
   bool isLoadingGroups = true;
@@ -45,6 +54,9 @@ class HomeScreenState extends State<HomeScreen> {
   String? errorMessage;
   String userName = '';
 
+  Timer? _notificationTimer;
+  int unreadCount = 0;
+
   VoidCallback? get onOpenGroups => widget.onOpenGroups;
   VoidCallback? get onOpenTransactions => widget.onOpenTransactions;
 
@@ -56,10 +68,55 @@ class HomeScreenState extends State<HomeScreen> {
     loadUserName();
     loadExpenses();
     loadGroups();
+    loadUnreadCount();
+
+    NotificationService.onNotificationReceived = loadUnreadCount;
+
+    _notificationTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) => loadUnreadCount(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
   }
 
   void refreshUserName() {
     loadUserName();
+  }
+
+  Future<void> loadUnreadCount() async {
+    try {
+      final token = await authService.getToken();
+
+      if (token == null) return;
+
+      final count = await appNotificationService.getUnreadCount(
+        jwtToken: token,
+      );
+
+      if (!mounted) return;
+
+      if (count != unreadCount) {
+        setState(() {
+          unreadCount = count;
+        });
+      }
+    } catch (error) {
+      // Ignore polling errors so the home screen remains stable.
+    }
+  }
+
+  Future<void> openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    );
+
+    loadUnreadCount();
   }
 
   void openGroupsScreen() {
@@ -270,15 +327,7 @@ class HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.notifications_none_rounded,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ],
+        actions: [_notificationBell()],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -291,11 +340,13 @@ class HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                 children: [
                   _greeting(),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   _balanceCard(totals),
-                  AppSpacing.gapLg,
+                  const SizedBox(height: 18),
                   _quickActions(),
-                  AppSpacing.gapLg,
+                  const SizedBox(height: 18),
+                  _recurringShortcut(),
+                  const SizedBox(height: 32),
                   _sectionHeader(
                     title: 'Recent transactions',
                     actionText: 'See all',
@@ -307,37 +358,69 @@ class HomeScreenState extends State<HomeScreen> {
                       }
                     },
                   ),
-                  AppSpacing.gapSm,
+                  const SizedBox(height: 16),
                   if (recentTransactions.isEmpty)
                     _emptyRecent()
                   else
                     ...recentTransactions.map(_recentTile),
-                  AppSpacing.gapLg,
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: Text(
-                      'Groups',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
+                  const SizedBox(height: 32),
+                  _sectionHeader(
+                    title: 'Groups',
+                    actionText: 'See all',
+                    onAction: openGroupsScreen,
                   ),
-                  AppSpacing.gapSm,
-                  isLoadingGroups
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      : groups.isEmpty
-                      ? _emptyGroups()
-                      : _groupsPreview(groups.take(3).toList()),
+                  const SizedBox(height: 16),
+                  if (isLoadingGroups)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (groups.isEmpty)
+                    _emptyGroups()
+                  else
+                    _groupsPreview(groups.take(3).toList()),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _notificationBell() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        IconButton(
+          onPressed: openNotifications,
+          icon: const Icon(
+            Icons.notifications_none_rounded,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        if (unreadCount > 0)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text(
+                unreadCount > 99 ? '99+' : '$unreadCount',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -623,6 +706,83 @@ class HomeScreenState extends State<HomeScreen> {
                 color: iconColor.withValues(alpha: 0.75),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _recurringShortcut() {
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const RecurringTransactionsScreen(),
+          ),
+        );
+
+        if (result == true) {
+          loadExpenses();
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: const Color(0xFF4F46E5).withValues(alpha: 0.18),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: Color(0xFFEEF2FF),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.event_repeat_rounded,
+                color: Color(0xFF4F46E5),
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Recurring Transactions',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  SizedBox(height: 3),
+                  Text(
+                    'Rent, subscriptions and salary',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
           ],
         ),
       ),

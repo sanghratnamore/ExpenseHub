@@ -1,5 +1,7 @@
+import 'package:expensehub_mobile/widgets/eh_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../utils/error_messages.dart';
 import '../models/group.dart';
 import '../models/group_balance.dart';
@@ -10,6 +12,7 @@ import '../services/group_service.dart';
 import 'group_add_expense_screen.dart';
 import 'group_expense_detail_screen.dart';
 import 'group_info_screen.dart';
+import 'group_deleted_expenses_screen.dart';
 
 const Color kPrimary = Color(0xFF0F766E);
 const Color kPrimarySoft = Color(0xFF14B8A6);
@@ -35,6 +38,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   String? _currentUserId;
   late final TabController _tabController;
 
+  final Set<String> _selectedExpenseIds = {};
+
+  bool get _isSelectionMode => _selectedExpenseIds.isNotEmpty;
+
+  final TextEditingController _expenseSearchController =
+      TextEditingController();
+
+  String _expenseSearchQuery = '';
+
+  int _deletedExpensesCount = 0;
+
   late Future<List<GroupExpense>> _expensesFuture;
   late Future<List<GroupBalance>> _balancesFuture;
   late Future<List<SettlementSuggestion>> _settlementsFuture;
@@ -53,6 +67,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+
+    _expenseSearchController.dispose();
   }
 
   void _refreshData() {
@@ -68,6 +84,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
       _settlementHistoryFuture = _groupService.getSettlementHistory(
         widget.group.id,
       );
+
+      _loadDeletedExpensesCount();
     });
   }
 
@@ -128,6 +146,101 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         ),
       ),
     );
+  }
+
+  void _toggleExpenseSelection(String expenseId) {
+    setState(() {
+      if (_selectedExpenseIds.contains(expenseId)) {
+        _selectedExpenseIds.remove(expenseId);
+      } else {
+        _selectedExpenseIds.add(expenseId);
+      }
+    });
+  }
+
+  DateTime? _getExpenseSortTime(GroupExpense expense) {
+    final created = expense.createdAt;
+
+    if (created != null && created.isNotEmpty) {
+      final parsedCreated = DateTime.tryParse(created);
+
+      if (parsedCreated != null) {
+        return parsedCreated;
+      }
+    }
+
+    return DateTime.tryParse(expense.expenseDate);
+  }
+
+  Future<void> _deleteSelectedExpenses() async {
+    if (_selectedExpenseIds.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete selected expenses?'),
+        content: Text(
+          '${_selectedExpenseIds.length} expense(s) will be moved to Recently Deleted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: kExpenseColor),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      for (final expenseId in _selectedExpenseIds) {
+        await _groupService.deleteGroupExpense(
+          groupId: widget.group.id,
+          expenseId: expenseId,
+        );
+      }
+
+      if (!mounted) return;
+
+      _showPremiumSnackBar(
+        message: '${_selectedExpenseIds.length} expense(s) deleted',
+        icon: Icons.delete_outline_rounded,
+        color: kExpenseColor,
+      );
+
+      setState(() {
+        _selectedExpenseIds.clear();
+      });
+
+      _refreshData();
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(getFriendlyError(error))));
+    }
+  }
+
+  Future<void> _loadDeletedExpensesCount() async {
+    try {
+      final deletedExpenses = await _groupService.getDeletedGroupExpenses(
+        widget.group.id,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _deletedExpensesCount = deletedExpenses.length;
+      });
+    } catch (_) {
+      // Ignore count errors
+    }
   }
 
   Future<void> _loadCurrentUser() async {
@@ -242,7 +355,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         ),
         content: Text(
           'Delete “${expense.description}”? '
-          'This cannot be undone.',
+          'It will be moved to Recently Deleted '
+          'and can be restored for 30 days.',
         ),
         actions: [
           TextButton(
@@ -449,7 +563,27 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           );
         }
 
-        final totalSpent = expenses.fold<double>(
+        final query = _expenseSearchQuery.trim().toLowerCase();
+
+        final filteredExpenses = query.isEmpty
+            ? expenses
+            : expenses.where((expense) {
+                final description = expense.description.toLowerCase();
+                final paidBy = expense.paidByName.toLowerCase();
+
+                return description.contains(query) || paidBy.contains(query);
+              }).toList();
+        filteredExpenses.sort((a, b) {
+          final timeA = _getExpenseSortTime(a);
+          final timeB = _getExpenseSortTime(b);
+
+          if (timeA == null || timeB == null) return 0;
+
+          // Newest created expense first
+          return timeB.compareTo(timeA);
+        });
+
+        final totalSpent = filteredExpenses.fold<double>(
           0,
           (total, expense) => total + expense.amount,
         );
@@ -462,38 +596,155 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 100),
             children: [
-              _ExpenseSummary(expenses: expenses, totalSpent: totalSpent),
-              const SizedBox(height: 22),
-              const Text(
-                'All expenses',
-                style: TextStyle(
-                  color: kInk,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
+              _ExpenseSummary(
+                expenses: filteredExpenses,
+                totalSpent: totalSpent,
               ),
-              const SizedBox(height: 14),
-              ...expenses.map(
-                (expense) => _ExpenseTile(
-                  expense: expense,
-                  onTap: () async {
-                    final refreshed = await Navigator.push<bool>(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => GroupExpenseDetailScreen(
-                          group: widget.group,
-                          expenseId: expense.id,
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: EhSearchBar(
+                      hintText: 'Search expenses',
+                      controller: _expenseSearchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _expenseSearchQuery = value;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: kBorder),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () async {
+                            final restored = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => GroupDeletedExpensesScreen(
+                                  group: widget.group,
+                                ),
+                              ),
+                            );
+
+                            if (restored == true) {
+                              _refreshData();
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.delete_sweep_rounded,
+                            size: 20,
+                            color: kMuted,
+                          ),
+                        ),
+                        if (_deletedExpensesCount > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Text(
+                              _deletedExpensesCount.toString(),
+                              style: const TextStyle(
+                                color: kMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              if (_isSelectionMode)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _selectedExpenseIds.clear();
+                            });
+                          },
+                          icon: const Icon(Icons.close_rounded),
+                          label: Text('Cancel (${_selectedExpenseIds.length})'),
                         ),
                       ),
-                    );
-
-                    if (refreshed == true) {
-                      _refreshData();
-                    }
-                  },
-                  onDelete: () => _deleteExpense(expense),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _deleteSelectedExpenses,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: kExpenseColor,
+                            foregroundColor: Colors.white,
+                          ),
+                          icon: const Icon(Icons.delete_outline_rounded),
+                          label: const Text('Delete'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+
+              if (filteredExpenses.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Text(
+                    'No expenses match your search',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: kMuted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                )
+              else
+                ...filteredExpenses.map((expense) {
+                  final expenseId = expense.id;
+                  final isSelected = _selectedExpenseIds.contains(expenseId);
+
+                  return _ExpenseTile(
+                    expense: expense,
+                    isSelected: isSelected,
+                    isSelectionMode: _isSelectionMode,
+                    onTap: () async {
+                      if (_isSelectionMode) {
+                        _toggleExpenseSelection(expenseId);
+                        return;
+                      }
+
+                      final refreshed = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => GroupExpenseDetailScreen(
+                            group: widget.group,
+                            expenseId: expense.id,
+                          ),
+                        ),
+                      );
+
+                      if (refreshed == true) {
+                        _refreshData();
+                      }
+                    },
+                    onLongPress: () {
+                      _toggleExpenseSelection(expenseId);
+                    },
+                    onDelete: () => _deleteExpense(expense),
+                  );
+                }),
             ],
           ),
         );
@@ -908,6 +1159,172 @@ class _TabData {
   const _TabData({required this.label, required this.icon});
 }
 
+class _ExpenseTile extends StatelessWidget {
+  final GroupExpense expense;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final Future<void> Function() onDelete;
+  final bool isSelected;
+  final bool isSelectionMode;
+
+  const _ExpenseTile({
+    required this.expense,
+    required this.onTap,
+    required this.onDelete,
+    this.onLongPress,
+    this.isSelected = false,
+    this.isSelectionMode = false,
+  });
+
+  Color get _accent {
+    final name = expense.description;
+
+    final colors = [
+      kPrimary,
+      const Color(0xFF0EA5E9),
+      const Color(0xFF6366F1),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFF59E0B),
+      const Color(0xFFEC4899),
+    ];
+
+    return colors[name.hashCode.abs() % colors.length];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      onLongPress: onLongPress,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? kPrimary.withValues(alpha: 0.08) : Colors.white,
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(
+            color: isSelected ? kPrimary : kBorder,
+            width: isSelected ? 1.6 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            if (isSelectionMode) ...[
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: isSelected ? kPrimary : Colors.white,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(
+                    color: isSelected ? kPrimary : kBorder,
+                    width: 1.5,
+                  ),
+                ),
+                child: isSelected
+                    ? const Icon(
+                        Icons.check_rounded,
+                        size: 15,
+                        color: Colors.white,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+              const SizedBox(width: 12),
+            ],
+
+            Container(
+              width: 46,
+              height: 46,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: _accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(17),
+              ),
+              child: Icon(Icons.receipt_long_rounded, color: _accent, size: 20),
+            ),
+
+            const SizedBox(width: 14),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    expense.description,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: kInk,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Paid by '
+                    '${expense.paidByName} • '
+                    '${expense.expenseDate}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: kMuted,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (expense.updatedByName != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Updated by '
+                        '${expense.updatedByName}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: kMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+              decoration: BoxDecoration(
+                color: kSurface,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Text(
+                '₹${expense.amount.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  color: kInk,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ExpenseSummary extends StatelessWidget {
   final List<GroupExpense> expenses;
   final double totalSpent;
@@ -977,117 +1394,6 @@ class _ExpenseSummary extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ExpenseTile extends StatelessWidget {
-  final GroupExpense expense;
-  final VoidCallback onTap;
-  final Future<void> Function() onDelete;
-
-  const _ExpenseTile({
-    required this.expense,
-    required this.onTap,
-    required this.onDelete,
-  });
-
-  Color get _accent {
-    final name = expense.description;
-
-    final colors = [
-      kPrimary,
-      const Color(0xFF0EA5E9),
-      const Color(0xFF6366F1),
-      const Color(0xFF8B5CF6),
-      const Color(0xFFF59E0B),
-      const Color(0xFFEC4899),
-    ];
-
-    return colors[name.hashCode.abs() % colors.length];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: kBorder),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: _accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(17),
-              ),
-              child: Icon(Icons.receipt_long_rounded, color: _accent, size: 20),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    expense.description,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: kInk,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    'Paid by '
-                    '${expense.paidByName} • '
-                    '${expense.expenseDate}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: kMuted,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-              decoration: BoxDecoration(
-                color: kSurface,
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Text(
-                '₹${expense.amount.toStringAsFixed(0)}',
-                style: const TextStyle(
-                  color: kInk,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

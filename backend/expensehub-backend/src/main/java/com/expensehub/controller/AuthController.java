@@ -19,6 +19,7 @@ import com.expensehub.service.EmailService;
 import com.expensehub.dto.VerifyOtpRequest;
 
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 
@@ -229,6 +230,59 @@ public class AuthController {
             return ResponseEntity
                     .badRequest()
                     .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/budget")
+    public ResponseEntity<?> getBudget(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        try {
+            BigDecimal budget = userService.getMonthlyBudget(
+                    userDetails.getUsername()
+            );
+
+            return ResponseEntity.ok(
+                    Map.of("budget", budget)
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("message", e.getMessage())
+            );
+        }
+    }
+
+    @PutMapping("/budget")
+    public ResponseEntity<?> updateBudget(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, Object> request
+    ) {
+        try {
+            Object value = request.get("budget");
+
+            if (value == null) {
+                return ResponseEntity.badRequest().body(
+                        Map.of("message", "Budget is required")
+                );
+            }
+
+            BigDecimal budget = new BigDecimal(value.toString());
+
+            userService.updateMonthlyBudget(
+                    userDetails.getUsername(),
+                    budget
+            );
+
+            return ResponseEntity.ok(
+                    Map.of(
+                            "message",
+                            "Monthly budget updated successfully"
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("message", e.getMessage())
+            );
         }
     }
 }

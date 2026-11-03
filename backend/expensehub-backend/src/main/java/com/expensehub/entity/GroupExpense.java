@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import jakarta.persistence.FetchType;
@@ -48,4 +49,26 @@ public class GroupExpense {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private User updatedBy;
+
+    private LocalDateTime updatedAt;
+
+    @Builder.Default
+    private Integer version = 1;
+
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
+
+    private LocalDateTime deletedAt;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
 }

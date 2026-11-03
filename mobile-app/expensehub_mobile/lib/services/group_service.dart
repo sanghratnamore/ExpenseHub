@@ -10,6 +10,8 @@ import '../models/group_balance.dart';
 import '../models/settlement_record.dart';
 import '../models/group_expense_detail.dart';
 
+
+
 class GroupService {
   static const String baseUrl = 'http://10.0.2.2:8080/api/groups';
   static const String friendsBaseUrl = 'http://10.0.2.2:8080/friends';
@@ -269,6 +271,32 @@ class GroupService {
     );
   }
 
+  Future<void> saveDeviceToken({
+    required String userId,
+    required String token,
+  }) async {
+    final response = await http.post(
+      Uri.parse('http://10.0.2.2:8080/api/notifications/device-token'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'userId': userId,
+        'deviceToken': token,
+        'platform': 'android',
+      }),
+    );
+
+    print('SAVE TOKEN STATUS: ${response.statusCode}');
+    print('SAVE TOKEN BODY: ${response.body}');
+
+    if (response.statusCode >= 400) {
+      throw Exception(
+        'Could not save device token. '
+        'Status: ${response.statusCode}, '
+        'Body: ${response.body}',
+      );
+    }
+  }
+
   Future<void> leaveGroup(String groupId) async {
     final headers = await _headers();
 
@@ -408,6 +436,7 @@ class GroupService {
     required String paidBy,
     required String categoryId,
     required List<String> memberIds,
+    required int version,
   }) async {
     final headers = await _headers();
 
@@ -421,14 +450,12 @@ class GroupService {
         'paidBy': paidBy,
         'categoryId': categoryId,
         'memberIds': memberIds,
+        'version': version,
       }),
     );
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception(
-        'Failed to update expense: '
-        '${response.statusCode} ${response.body}',
-      );
+      throw Exception(_errorMessage(response));
     }
   }
 
@@ -467,6 +494,44 @@ class GroupService {
         'Failed to delete expense: '
         '${response.statusCode} ${response.body}',
       );
+    }
+  }
+
+  Future<List<GroupExpense>> getDeletedGroupExpenses(String groupId) async {
+    final headers = await _headers();
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/$groupId/expenses/deleted'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+
+      return data.map((expense) => GroupExpense.fromJson(expense)).toList();
+    }
+
+    if (response.statusCode == 401) {
+      await authService.logout();
+      throw Exception('Session expired. Please log in again.');
+    }
+
+    throw Exception('Failed to load deleted expenses: ${response.statusCode}');
+  }
+
+  Future<void> restoreGroupExpense({
+    required String groupId,
+    required String expenseId,
+  }) async {
+    final headers = await _headers();
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/$groupId/expenses/$expenseId/restore'),
+      headers: headers,
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(_errorMessage(response));
     }
   }
 

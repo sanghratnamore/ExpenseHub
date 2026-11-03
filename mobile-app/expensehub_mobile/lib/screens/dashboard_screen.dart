@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
@@ -18,7 +19,9 @@ const Color kSurface = Color(0xFFF6F7F9);
 const Color kBorder = Color(0xFFE2E8F0);
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final bool showBackButton;
+
+  const DashboardScreen({super.key, this.showBackButton = false});
 
   @override
   State<DashboardScreen> createState() => DashboardScreenState();
@@ -348,6 +351,12 @@ class DashboardScreenState extends State<DashboardScreen> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: widget.showBackButton
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kInk),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         title: const Text(
           'Insights',
           style: TextStyle(color: kInk, fontWeight: FontWeight.w800),

@@ -77,6 +77,8 @@ public class RecurringTransactionService {
         rule.setFrequency(request.getFrequency());
         rule.setStartDate(request.getStartDate());
         rule.setNextDueDate(request.getStartDate());
+        rule.setCategoryId(request.getCategoryId());
+        rule.setUser(user);
         rule.setActive(true);
 
 
@@ -88,16 +90,13 @@ public class RecurringTransactionService {
     public List<RecurringTransaction>
     getRecurringTransactionsByUser() {
 
-
         User user = getCurrentUser();
 
-
         return recurringTransactionRepository
-                .findByUserIdAndActiveTrue(
+                .findByUserIdOrderByNextDueDateAsc(
                         user.getId()
                 );
     }
-
 
 
     public void deleteRecurringTransaction(
@@ -216,6 +215,7 @@ public class RecurringTransactionService {
                 "User not authenticated"
         );
     }
+
     private LocalDate calculateNextDueDate(
             LocalDate current,
             String frequency
@@ -230,11 +230,60 @@ public class RecurringTransactionService {
         return switch (value) {
             case "DAILY" -> current.plusDays(1);
             case "WEEKLY" -> current.plusWeeks(1);
-            case "MONTHLY" ->
-                    current.plusMonths(1);
-            case "YEARLY" ->
-                    current.plusYears(1);
+            case "MONTHLY" -> current.plusMonths(1);
+            case "YEARLY" -> current.plusYears(1);
             default -> current.plusMonths(1);
         };
+    }
+
+    @Transactional
+    public void pauseRecurringTransaction(UUID id) {
+        RecurringTransaction rule = getOwnedRule(id);
+
+        rule.setActive(false);
+        recurringTransactionRepository.save(rule);
+    }
+
+    @Transactional
+    public void resumeRecurringTransaction(UUID id) {
+        RecurringTransaction rule = getOwnedRule(id);
+
+        rule.setActive(true);
+        recurringTransactionRepository.save(rule);
+    }
+
+    private RecurringTransaction getOwnedRule(UUID id) {
+        User user = getCurrentUser();
+
+        RecurringTransaction rule = recurringTransactionRepository
+                .findById(id)
+                .orElseThrow(() -> new RuntimeException(
+                        "Recurring transaction not found"));
+
+        if (!rule.getUser().getId().equals(user.getId())) {
+            throw new RuntimeException("Not allowed");
+        }
+
+        return rule;
+    }
+
+    @Transactional
+    public RecurringTransaction updateRecurringTransaction(
+            UUID id,
+            RecurringTransactionRequest request
+    ) {
+        RecurringTransaction rule = getOwnedRule(id);
+
+        rule.setTitle(request.getTitle());
+        rule.setAmount(request.getAmount());
+        rule.setType(request.getType());
+        rule.setCategory(request.getCategory());
+        rule.setDescription(request.getDescription());
+        rule.setFrequency(request.getFrequency());
+        rule.setStartDate(request.getStartDate());
+        rule.setNextDueDate(request.getNextDueDate());
+        rule.setCategoryId(request.getCategoryId());
+
+        return recurringTransactionRepository.save(rule);
     }
 }

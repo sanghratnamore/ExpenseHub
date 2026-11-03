@@ -4,24 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import '../utils/error_messages.dart';
-import '../services/recurring_transaction_service.dart';
 
-import 'manage_categories_screen.dart';
 import '../models/category.dart';
 import '../models/expense.dart';
+import '../models/recurring_transaction.dart';
 import '../services/auth_service.dart';
 import '../services/category_service.dart';
 import '../services/expense_service.dart';
+import '../services/recurring_transaction_service.dart';
+import '../utils/error_messages.dart';
+import 'manage_categories_screen.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final Expense? expense;
   final String transactionType;
+  final bool autoRecurring;
 
   const AddTransactionScreen({
     super.key,
     this.expense,
-    required this.transactionType,
+    this.transactionType = 'EXPENSE',
+    this.autoRecurring = false,
   });
 
   @override
@@ -30,9 +33,11 @@ class AddTransactionScreen extends StatefulWidget {
 
 class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final authService = AuthService();
   final categoryService = CategoryService();
   final expenseService = ExpenseService();
+  final recurringService = RecurringTransactionService();
 
   late final TextEditingController amountController;
   late final TextEditingController descriptionController;
@@ -48,7 +53,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   bool isRecurring = false;
   String selectedFrequency = 'MONTHLY';
-  final recurringService = RecurringTransactionService();
 
   Expense? get existingExpense => widget.expense;
 
@@ -71,6 +75,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     descriptionController = TextEditingController(
       text: existingExpense?.description ?? '',
     );
+    isRecurring = widget.autoRecurring;
 
     categoriesFuture = categoryService.getCategories();
     loadExpensesForUsage();
@@ -89,6 +94,60 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     amountController.dispose();
     descriptionController.dispose();
     super.dispose();
+  }
+
+  DateTime calculateNextDueDate(DateTime startDate, String frequency) {
+    final now = DateTime.now();
+
+    DateTime nextDate;
+
+    switch (frequency.toUpperCase()) {
+      case 'DAILY':
+        nextDate = DateTime(startDate.year, startDate.month, startDate.day + 1);
+        break;
+
+      case 'WEEKLY':
+        nextDate = DateTime(startDate.year, startDate.month, startDate.day + 7);
+        break;
+
+      case 'MONTHLY':
+        nextDate = DateTime(startDate.year, startDate.month + 1, startDate.day);
+        break;
+
+      case 'YEARLY':
+        nextDate = DateTime(startDate.year + 1, startDate.month, startDate.day);
+        break;
+
+      default:
+        nextDate = DateTime(startDate.year, startDate.month + 1, startDate.day);
+    }
+
+    // If the calculated next date is still today or in the past,
+    // keep moving forward until it is in the future.
+    while (!nextDate.isAfter(now)) {
+      switch (frequency.toUpperCase()) {
+        case 'DAILY':
+          nextDate = DateTime(nextDate.year, nextDate.month, nextDate.day + 1);
+          break;
+
+        case 'WEEKLY':
+          nextDate = DateTime(nextDate.year, nextDate.month, nextDate.day + 7);
+          break;
+
+        case 'MONTHLY':
+          nextDate = DateTime(nextDate.year, nextDate.month + 1, nextDate.day);
+          break;
+
+        case 'YEARLY':
+          nextDate = DateTime(nextDate.year + 1, nextDate.month, nextDate.day);
+          break;
+
+        default:
+          nextDate = DateTime(nextDate.year, nextDate.month + 1, nextDate.day);
+      }
+    }
+
+    return nextDate;
   }
 
   Future<void> showRecurringInfo() async {
@@ -362,7 +421,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 fontSize: 13,
               ),
             ),
-
             if (isMostUsed && !isSelected) ...[
               const SizedBox(width: 6),
               Icon(
@@ -479,9 +537,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     } catch (error) {
                       if (!context.mounted) return;
 
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(getFriendlyError(error))));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(getFriendlyError(error))),
+                      );
                     }
                   },
                   style: FilledButton.styleFrom(
@@ -564,8 +622,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             'description': descriptionController.text.trim(),
             'date': selectedDate.toIso8601String().substring(0, 10),
             'categoryId': selectedCategoryId,
-            'isRecurring': isRecurring,
-            'recurringFrequency': isRecurring ? selectedFrequency : null,
           }),
         );
 
@@ -574,6 +630,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           debugPrint('Response body: ${response.body}');
 
           throw Exception('Failed to save transaction: ${response.body}');
+        }
+
+        if (isRecurring) {
+          final nextDueDate = calculateNextDueDate(
+            selectedDate,
+            selectedFrequency,
+          );
+
+          await recurringService.createRecurringTransaction(
+            RecurringTransaction(
+              title: descriptionController.text.trim(),
+              amount: double.parse(amountController.text.trim()),
+              type: selectedType,
+              category: selectedCategoryId ?? 'Other',
+              categoryId: selectedCategoryId,
+              description: descriptionController.text.trim(),
+              frequency: selectedFrequency,
+              startDate: selectedDate,
+              nextDueDate: nextDueDate,
+              active: true,
+            ),
+          );
         }
       }
 
@@ -1119,6 +1197,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 ],
               ),
             ),
+
             if (isRecurring) ...[
               const SizedBox(height: 16),
 

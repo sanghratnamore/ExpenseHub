@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/friend.dart';
 import '../services/friend_service.dart';
 import 'add_friend_screen.dart';
@@ -87,6 +88,19 @@ class _FriendsScreenState extends State<FriendsScreen> {
     loadFriends();
   }
 
+  Future<void> _openFriendProfile(Friend friend) async {
+    final removed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => FriendProfileScreen(friend: friend)),
+    );
+
+    if (!mounted) return;
+
+    if (removed == true) {
+      loadFriends();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,14 +182,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
                   return _FriendTile(
                     friend: friend,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FriendProfileScreen(friend: friend),
-                        ),
-                      );
-                    },
+                    onTap: () => _openFriendProfile(friend),
                   );
                 },
               ),

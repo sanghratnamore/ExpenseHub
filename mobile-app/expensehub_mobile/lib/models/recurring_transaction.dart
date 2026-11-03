@@ -11,9 +11,12 @@ class RecurringTransaction {
   final DateTime startDate;
   final DateTime nextDueDate;
   final bool active;
+  final String? categoryId;
+  final DateTime? createdAt;
 
   RecurringTransaction({
     this.id,
+    this.categoryId,
     required this.title,
     required this.amount,
     required this.type,
@@ -23,6 +26,7 @@ class RecurringTransaction {
     required this.startDate,
     required this.nextDueDate,
     this.active = true,
+    this.createdAt,
   });
 
   factory RecurringTransaction.fromJson(
@@ -40,24 +44,58 @@ class RecurringTransaction {
         json['category'],
         fallback: 'Other',
       ),
-      description: JsonUtils.parseOptionalString(json['description']),
+      description: JsonUtils.parseOptionalString(
+        json['description'],
+      ),
       frequency: JsonUtils.parseString(
         json['frequency'],
         fallback: 'MONTHLY',
       ),
-      startDate: DateTime.tryParse(
-            JsonUtils.parseString(json['startDate']),
-          ) ??
-          DateTime.now(),
-      nextDueDate: DateTime.tryParse(
-            JsonUtils.parseString(json['nextDueDate']),
-          ) ??
-          DateTime.now(),
+      startDate:
+          DateTime.tryParse(
+                JsonUtils.parseString(
+                  json['startDate'],
+                ),
+              ) ??
+              DateTime.now(),
+      nextDueDate:
+          DateTime.tryParse(
+                JsonUtils.parseString(
+                  json['nextDueDate'],
+                ),
+              ) ??
+              DateTime.now(),
       active: JsonUtils.parseBool(
         json['active'],
         fallback: true,
       ),
+      categoryId: JsonUtils.parseOptionalId(
+        json['categoryId'],
+      ),
+      createdAt: _parseCreatedAt(json),
     );
+  }
+
+  static DateTime? _parseCreatedAt(
+    Map<String, dynamic> json,
+  ) {
+    final value =
+        json['createdAt'] ?? json['created_at'];
+
+    if (value == null) return null;
+
+    if (value is List && value.length >= 6) {
+      return DateTime(
+        value[0],
+        value[1],
+        value[2],
+        value[3],
+        value[4],
+        value[5],
+      );
+    }
+
+    return DateTime.tryParse(value.toString());
   }
 
   Map<String, dynamic> toJson() {
@@ -72,6 +110,12 @@ class RecurringTransaction {
       'startDate': startDate
           .toIso8601String()
           .substring(0, 10),
+      if (categoryId != null) 'categoryId': categoryId,
+      'nextDueDate': nextDueDate
+          .toIso8601String()
+          .substring(0, 10),
+      if (createdAt != null)
+        'createdAt': createdAt!.toIso8601String(),
     };
   }
 }

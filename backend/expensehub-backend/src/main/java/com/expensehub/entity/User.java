@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -35,6 +36,9 @@ public class User {
     private String password;
 
     private String phone;
+
+    @Column(name = "monthly_budget", precision = 12, scale = 2)
+    private BigDecimal monthlyBudget;
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;

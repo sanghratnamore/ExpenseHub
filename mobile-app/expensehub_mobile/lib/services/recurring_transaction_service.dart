@@ -20,34 +20,51 @@ class RecurringTransactionService {
     };
   }
 
-  Future<List<RecurringTransaction>>
-      getRecurringTransactions() async {
+  Future<void> pauseRecurringTransaction(String id) async {
     final headers = await _getHeaders();
 
-    final response = await http.get(
-      Uri.parse(baseUrl),
+    final response = await http.put(
+      Uri.parse('$baseUrl/$id/pause'),
       headers: headers,
     );
 
+    if (response.statusCode >= 400) {
+      throw Exception('Failed to pause recurring transaction');
+    }
+  }
+
+  Future<void> resumeRecurringTransaction(String id) async {
+    final headers = await _getHeaders();
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/$id/resume'),
+      headers: headers,
+    );
+
+    if (response.statusCode >= 400) {
+      throw Exception('Failed to resume recurring transaction');
+    }
+  }
+
+  Future<List<RecurringTransaction>> getRecurringTransactions() async {
+    final headers = await _getHeaders();
+
+    final response = await http.get(Uri.parse(baseUrl), headers: headers);
+
     if (response.statusCode != 200) {
-      throw Exception(
-        'Failed to load recurring transactions',
-      );
+      throw Exception('Failed to load recurring transactions');
     }
 
     final List<dynamic> data = jsonDecode(response.body);
 
     return data
         .map(
-          (item) => RecurringTransaction.fromJson(
-            item as Map<String, dynamic>,
-          ),
+          (item) => RecurringTransaction.fromJson(item as Map<String, dynamic>),
         )
         .toList();
   }
 
-  Future<RecurringTransaction>
-      createRecurringTransaction(
+  Future<RecurringTransaction> createRecurringTransaction(
     RecurringTransaction transaction,
   ) async {
     final headers = await _getHeaders();
@@ -58,11 +75,8 @@ class RecurringTransactionService {
       body: jsonEncode(transaction.toJson()),
     );
 
-    if (response.statusCode != 200 &&
-        response.statusCode != 201) {
-      throw Exception(
-        'Failed to create recurring transaction',
-      );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to create recurring transaction');
     }
 
     return RecurringTransaction.fromJson(
@@ -70,9 +84,7 @@ class RecurringTransactionService {
     );
   }
 
-  Future<void> deleteRecurringTransaction(
-    String id,
-  ) async {
+  Future<void> deleteRecurringTransaction(String id) async {
     final headers = await _getHeaders();
 
     final response = await http.delete(
@@ -80,11 +92,28 @@ class RecurringTransactionService {
       headers: headers,
     );
 
-    if (response.statusCode != 200 &&
-        response.statusCode != 204) {
-      throw Exception(
-        'Failed to delete recurring transaction',
-      );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete recurring transaction');
     }
+  }
+
+  Future<RecurringTransaction> updateRecurringTransaction(
+    RecurringTransaction transaction,
+  ) async {
+    final headers = await _getHeaders();
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/${transaction.id}'),
+      headers: headers,
+      body: jsonEncode(transaction.toJson()),
+    );
+
+    if (response.statusCode >= 400) {
+      throw Exception('Failed to update recurring transaction');
+    }
+
+    return RecurringTransaction.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
   }
 }

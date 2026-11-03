@@ -1,9 +1,13 @@
 package com.expensehub.dto;
 
 
+import lombok.Getter;
+
 import java.time.LocalDate;
+import java.util.UUID;
 
 
+@Getter
 public class RecurringTransactionRequest {
 
 
@@ -27,9 +31,19 @@ public class RecurringTransactionRequest {
 
     private LocalDate startDate;
 
+    private LocalDate nextDueDate;
 
-    public String getTitle() {
-        return title;
+
+    private UUID categoryId;
+
+
+    public UUID getCategoryId() {
+        return categoryId;
+    }
+
+
+    public void setCategoryId(UUID categoryId) {
+        this.categoryId = categoryId;
     }
 
 
@@ -38,18 +52,8 @@ public class RecurringTransactionRequest {
     }
 
 
-    public Double getAmount() {
-        return amount;
-    }
-
-
     public void setAmount(Double amount) {
         this.amount = amount;
-    }
-
-
-    public String getType() {
-        return type;
     }
 
 
@@ -58,18 +62,8 @@ public class RecurringTransactionRequest {
     }
 
 
-    public String getCategory() {
-        return category;
-    }
-
-
     public void setCategory(String category) {
         this.category = category;
-    }
-
-
-    public String getDescription() {
-        return description;
     }
 
 
@@ -78,22 +72,13 @@ public class RecurringTransactionRequest {
     }
 
 
-    public String getFrequency() {
-        return frequency;
-    }
-
-
     public void setFrequency(String frequency) {
         this.frequency = frequency;
-    }
-
-
-    public LocalDate getStartDate() {
-        return startDate;
     }
 
 
     public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
     }
+
 }

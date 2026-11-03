@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../utils/error_messages.dart';
 import '../models/group.dart';
 import '../models/group_expense_detail.dart';
@@ -174,6 +175,11 @@ class _GroupExpenseDetailScreenState extends State<GroupExpenseDetailScreen> {
               _ExpenseHero(expense: expense),
               const SizedBox(height: 22),
 
+              if (expense.updatedByName != null) ...[
+                _UpdatedBySection(expense: expense),
+                const SizedBox(height: 18),
+              ],
+
               _PaidBySection(expense: expense),
 
               const SizedBox(height: 18),
@@ -196,6 +202,74 @@ class _GroupExpenseDetailScreenState extends State<GroupExpenseDetailScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _UpdatedBySection extends StatelessWidget {
+  final GroupExpenseDetail expense;
+
+  const _UpdatedBySection({required this.expense});
+
+  String get _updatedText {
+    final updatedAt = expense.updatedAt;
+
+    if (updatedAt == null) {
+      return 'Updated by ${expense.updatedByName}';
+    }
+
+    final difference = DateTime.now().difference(updatedAt);
+
+    String timeAgo;
+
+    if (difference.inMinutes < 1) {
+      timeAgo = 'just now';
+    } else if (difference.inMinutes < 60) {
+      timeAgo = '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      timeAgo = '${difference.inHours}h ago';
+    } else {
+      timeAgo = '${difference.inDays}d ago';
+    }
+
+    return 'Updated by ${expense.updatedByName} · $timeAgo';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: kBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: kPrimary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.history_rounded, color: kPrimary, size: 19),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _updatedText,
+              style: const TextStyle(
+                color: kInk,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

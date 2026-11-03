@@ -24,8 +24,16 @@ public interface RecurringTransactionRepository
     findByActiveTrueAndNextDueDateLessThanEqual(
             LocalDate date
     );
+
     List<RecurringTransaction>
     findByNextDueDateLessThanEqualAndActiveTrue(
             LocalDate date
     );
+    List<RecurringTransaction>
+    findByActiveTrueAndNextDueDateBetween(
+            LocalDate start,
+            LocalDate end
+    );
+
+    List<RecurringTransaction> findByUserIdOrderByNextDueDateAsc(UUID userId);
 }

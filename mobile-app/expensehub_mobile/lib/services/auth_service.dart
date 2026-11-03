@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../services/notification_service.dart';
+
 class AuthService {
   static const String baseUrl = 'http://10.0.2.2:8080/api/auth';
   static const _storage = FlutterSecureStorage();
@@ -35,6 +37,9 @@ class AuthService {
 
     final token = result['token'];
     final userId = result['id'];
+    if (userId != null) {
+      await _registerNotificationToken(userId.toString());
+    }
     final userName = result['name'] ?? result['username'] ?? email;
 
     if (token != null) {
@@ -51,6 +56,24 @@ class AuthService {
       value: (result['email'] ?? email).toString(),
     );
     return result;
+  }
+
+  Future<void> _registerNotificationToken(String userId) async {
+    try {
+      final notificationService = NotificationService();
+
+      final fcmToken = await notificationService.getToken();
+      final jwtToken = await getToken();
+
+      if (fcmToken != null && jwtToken != null) {
+        await notificationService.saveDeviceToken(
+          token: fcmToken,
+          jwtToken: jwtToken,
+        );
+      }
+    } catch (e) {
+      print('Notification token registration failed: $e');
+    }
   }
 
   Future<Map<String, dynamic>> updateUserName({required String name}) async {
@@ -89,6 +112,34 @@ class AuthService {
   }
 
   Future<double> getMonthlyBudget() async {
+    final token = await getToken();
+
+    if (token == null) return 20000;
+
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/budget'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        final budget = double.tryParse(data['budget'].toString());
+
+        if (budget != null) {
+          await _storage.write(key: 'monthly_budget', value: budget.toString());
+
+          return budget;
+        }
+      }
+    } catch (_) {
+      // Fall back to locally saved budget.
+    }
+
     final value = await _storage.read(key: 'monthly_budget');
 
     if (value == null) return 20000;
@@ -97,6 +148,25 @@ class AuthService {
   }
 
   Future<void> setMonthlyBudget(double budget) async {
+    final token = await getToken();
+
+    if (token == null) {
+      throw Exception('Not logged in');
+    }
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/budget'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'budget': budget}),
+    );
+
+    if (response.statusCode >= 400) {
+      throw Exception('Failed to update monthly budget');
+    }
+
     await _storage.write(key: 'monthly_budget', value: budget.toString());
   }
 

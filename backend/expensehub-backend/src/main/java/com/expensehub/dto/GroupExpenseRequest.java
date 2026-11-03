@@ -35,4 +35,8 @@ public class GroupExpenseRequest {
     private List<UUID> memberIds;
 
     private UUID categoryId;
+
+    private Integer version;
+
+
 }

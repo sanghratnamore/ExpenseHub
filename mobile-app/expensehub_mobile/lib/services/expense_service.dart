@@ -77,6 +77,35 @@ class ExpenseService {
     }
   }
 
+  Future<Expense> getExpenseById(String id) async {
+    final token = await authService.getToken();
+
+    if (token == null) {
+      throw Exception('Not logged in');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return Expense.fromJson(jsonDecode(response.body));
+    }
+
+    if (response.statusCode == 401) {
+      await authService.logout();
+      throw Exception('Session expired. Please log in again.');
+    }
+
+    throw Exception(
+      'Failed to load transaction: ${response.statusCode} ${response.body}',
+    );
+  }
+
   Future<void> deleteExpense(String id) async {
     final token = await authService.getToken();
 

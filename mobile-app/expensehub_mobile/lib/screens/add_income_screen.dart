@@ -5,11 +5,20 @@ import 'add_transaction_screen.dart';
 
 class AddIncomeScreen extends StatelessWidget {
   final Expense? expense;
+  final bool autoRecurring;
 
-  const AddIncomeScreen({super.key, this.expense});
+  const AddIncomeScreen({
+    super.key,
+    this.expense,
+    this.autoRecurring = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AddTransactionScreen(expense: expense, transactionType: 'INCOME');
+    return AddTransactionScreen(
+      expense: expense,
+      transactionType: 'INCOME',
+      autoRecurring: autoRecurring,
+    );
   }
 }
