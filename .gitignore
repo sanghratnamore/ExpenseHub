@@ -1,0 +1,11 @@
+**/application.properties
+!**/application-example.properties
+secrets/
+**/firebase-service-account.json
+**/key.properties
+**/*.jks
+**/*.keystore
+**/local.properties
+.env
+build/
+.gradle/
