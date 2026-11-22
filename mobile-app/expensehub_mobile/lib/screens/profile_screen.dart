@@ -11,6 +11,7 @@ import 'welcome_screen.dart';
 import '../utils/app_route.dart';
 import '../widgets/notification_bell_button.dart';
 
+
 const Color kPrimary = Color(0xFF0F766E);
 const Color kPrimarySoft = Color(0xFF14B8A6);
 const Color kInk = Color(0xFF0F172A);
@@ -223,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     subtitle: 'Keep your account secure',
                     onTap: _openChangePassword,
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
                   _LogoutButton(onTap: _logout),
                 ],
               ),

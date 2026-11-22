@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.expensehub.entity.User;
 
 @RestController
 @RequestMapping("/api/dashboard")
@@ -14,14 +15,13 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
-    @GetMapping("/user/{userId}")
+    @GetMapping("/me")
     public ResponseEntity<DashboardResponse> getDashboard(
-            @PathVariable UUID userId,
             @RequestParam int year,
             @RequestParam int month
     ) {
         return ResponseEntity.ok(
-                dashboardService.getMonthlyDashboard(userId, year, month)
+                dashboardService.getMonthlyDashboardForCurrentUser(year, month)
         );
     }
 }

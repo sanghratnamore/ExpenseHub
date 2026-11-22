@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:expensehub_mobile/services/session_manager.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/expense.dart';
@@ -30,7 +31,7 @@ class ExpenseService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -97,7 +98,7 @@ class ExpenseService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 

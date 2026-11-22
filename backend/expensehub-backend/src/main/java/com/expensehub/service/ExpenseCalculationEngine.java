@@ -137,7 +137,7 @@ public class ExpenseCalculationEngine {
                         new RuntimeException("Group not found"));
 
         List<GroupExpense> expenses =
-                groupExpenseRepository.findByGroupId(groupId);
+                groupExpenseRepository.findByGroupIdAndIsDeletedFalse(groupId);
 
         List<ExpenseSplit> splits =
                 expenseSplitRepository.findByGroupExpenseGroupId(groupId);

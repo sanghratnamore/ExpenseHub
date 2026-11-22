@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:expensehub_mobile/services/session_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -21,8 +22,6 @@ class CategoryService {
 
     final url = Uri.parse('$baseUrl/me');
 
-   
-
     final response = await http.get(
       url,
       headers: {
@@ -31,7 +30,6 @@ class CategoryService {
       },
     );
 
-  
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
 
@@ -39,7 +37,7 @@ class CategoryService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -60,11 +58,7 @@ class CategoryService {
     }
 
     final url = Uri.parse(baseUrl);
-    final body = jsonEncode({
-      'name': name,
-      'type': type,
-      'userId': userId,
-    });
+    final body = jsonEncode({'name': name, 'type': type, 'userId': userId});
 
     debugPrint('CREATE CATEGORY URL: $url');
     debugPrint('CREATE CATEGORY BODY: $body');
@@ -86,7 +80,7 @@ class CategoryService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -108,11 +102,7 @@ class CategoryService {
     }
 
     final url = Uri.parse('$baseUrl/$categoryId');
-    final body = jsonEncode({
-      'name': name,
-      'type': type,
-      'userId': userId,
-    });
+    final body = jsonEncode({'name': name, 'type': type, 'userId': userId});
 
     debugPrint('UPDATE CATEGORY URL: $url');
     debugPrint('UPDATE CATEGORY BODY: $body');
@@ -134,7 +124,7 @@ class CategoryService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -156,9 +146,7 @@ class CategoryService {
 
     final response = await http.delete(
       url,
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     debugPrint('DELETE CATEGORY STATUS: ${response.statusCode}');
@@ -169,7 +157,7 @@ class CategoryService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 

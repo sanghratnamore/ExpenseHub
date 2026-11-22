@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:expensehub_mobile/services/session_manager.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/settlement_suggestion.dart';
@@ -9,8 +10,6 @@ import 'auth_service.dart';
 import '../models/group_balance.dart';
 import '../models/settlement_record.dart';
 import '../models/group_expense_detail.dart';
-
-
 
 class GroupService {
   static const String baseUrl = 'http://10.0.2.2:8080/api/groups';
@@ -88,7 +87,7 @@ class GroupService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -226,7 +225,7 @@ class GroupService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -355,7 +354,7 @@ class GroupService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -512,7 +511,7 @@ class GroupService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 
@@ -550,7 +549,7 @@ class GroupService {
     }
 
     if (response.statusCode == 401) {
-      await authService.logout();
+      await SessionManager.handleExpiredSession();
       throw Exception('Session expired. Please log in again.');
     }
 

@@ -39,6 +39,7 @@ public class SecurityConfig {
                                 "/api/auth/resend-otp",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
+                                "/api/auth/resend-verification",
                                 "/error"
                         ).permitAll()
                         .requestMatchers("/api/notifications/**").authenticated()

@@ -32,6 +32,8 @@ public interface GroupExpenseRepository
             LocalDateTime cutoffDate
     );
 
+    List<GroupExpense> findByGroupIdAndIsDeletedFalse(UUID groupId);
+
     @Query("""
             SELECT ge FROM GroupExpense ge
             WHERE ge.group.id = :groupId

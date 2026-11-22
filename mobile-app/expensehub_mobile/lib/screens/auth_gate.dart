@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+
 import '../services/auth_service.dart';
+import '../utils/app_navigator.dart';
+import 'login_screen.dart';
 import 'main_shell.dart';
-import 'welcome_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
   @override
-  State<AuthGate> createState() =>
-      _AuthGateState();
+  State<AuthGate> createState() => _AuthGateState();
 }
 
 class _AuthGateState extends State<AuthGate> {
@@ -27,11 +28,11 @@ class _AuthGateState extends State<AuthGate> {
     final token = await authService.getToken();
     final userId = await authService.getUserId();
 
+    if (!mounted) return;
+
     setState(() {
       isLoggedIn =
-          token != null &&
-          token.isNotEmpty &&
-          userId != null;
+          token != null && token.isNotEmpty && userId != null;
       isLoading = false;
     });
   }
@@ -40,16 +41,10 @@ class _AuthGateState extends State<AuthGate> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (isLoggedIn) {
-      return const MainShell();
-    }
-
-    return const WelcomeScreen();
+    return isLoggedIn ? const MainShell() : const LoginScreen();
   }
 }

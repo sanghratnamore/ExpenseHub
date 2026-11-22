@@ -60,4 +60,11 @@ public class User {
 
     @Column(name = "otp_expiry")
     private LocalDateTime otpExpiry;
+
+    @Column(name = "otp_attempts", nullable = false)
+    @Builder.Default
+    private int otpAttempts = 0;
+
+    @Column(name = "last_otp_sent_at")
+    private LocalDateTime lastOtpSentAt;
 }

@@ -175,10 +175,7 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    await _storage.delete(key: 'jwt_token');
-    await _storage.delete(key: 'user_id');
-    await _storage.delete(key: 'user_name');
-    await _storage.delete(key: 'user_email');
+    await _storage.deleteAll();
   }
 
   Future<Map<String, dynamic>> changePassword({

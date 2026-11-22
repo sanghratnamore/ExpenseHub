@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
@@ -15,26 +16,37 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY =
-            "expensehub_super_secret_key_change_this_in_production_1234567890";
+    private final String secretKey;
+    private final long expirationTime;
 
-    private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 24;
+    public JwtService(
+            @Value("${jwt.secret}") String secretKey,
+            @Value("${jwt.expiration-ms:86400000}") long expirationTime
+    ) {
+        this.secretKey = secretKey;
+        this.expirationTime = expirationTime;
+
+        if (secretKey == null || secretKey.length() < 32) {
+            throw new IllegalStateException(
+                    "JWT secret must be at least 32 characters long"
+            );
+        }
+    }
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     public String generateToken(String email) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email);
-    }
 
-    private String createToken(Map<String, Object> claims, String email) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(email)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(
+                        System.currentTimeMillis() + expirationTime
+                ))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -43,7 +55,10 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> resolver) {
+    public <T> T extractClaim(
+            String token,
+            Function<Claims, T> resolver
+    ) {
         final Claims claims = extractAllClaims(token);
         return resolver.apply(claims);
     }
@@ -58,10 +73,15 @@ public class JwtService {
 
     public boolean isTokenValid(String token, String email) {
         final String tokenEmail = extractEmail(token);
-        return tokenEmail.equals(email) && !isTokenExpired(token);
+
+        return tokenEmail.equals(email)
+                && !isTokenExpired(token);
     }
 
     private boolean isTokenExpired(String token) {
-        return extractClaim(token, Claims::getExpiration).before(new Date());
+        return extractClaim(
+                token,
+                Claims::getExpiration
+        ).before(new Date());
     }
 }

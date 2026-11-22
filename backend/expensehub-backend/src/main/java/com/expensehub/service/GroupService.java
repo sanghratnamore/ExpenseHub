@@ -36,8 +36,7 @@ public class GroupService {
 
     @Transactional
     public GroupEntity createGroup(CreateGroupRequest request) {
-        User creator = userRepository.findById(request.getCreatedBy())
-                .orElseThrow(() -> new RuntimeException("Creator user not found"));
+        User creator = currentUser.getUser();
 
         GroupEntity group = GroupEntity.builder()
                 .name(request.getName())
@@ -82,7 +81,8 @@ public class GroupService {
                         member,
                         "GROUP_ADDED",
                         "Added to group",
-                        creator.getName() + " added you to " + savedGroup.getName(),
+                        creator.getName() + " added you to "
+                                + savedGroup.getName(),
                         savedGroup.getId(),
                         null,
                         null
@@ -448,11 +448,36 @@ public class GroupService {
 
         assertGroupMember(request.getGroupId(), loggedInUser.getId());
 
+        if (request.getAmount() == null
+                || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Expense amount must be greater than zero");
+        }
+
+        if (request.getMemberIds() == null
+                || request.getMemberIds().isEmpty()) {
+            throw new RuntimeException("Select at least one member for the split");
+        }
+
+        if (request.getMemberIds().stream().distinct().count()
+                != request.getMemberIds().size()) {
+            throw new RuntimeException("Duplicate members are not allowed in the split");
+        }
+
         GroupEntity group = groupRepository.findById(request.getGroupId())
                 .orElseThrow(() -> new RuntimeException("Group not found"));
 
         User paidBy = userRepository.findById(request.getPaidBy())
                 .orElseThrow(() -> new RuntimeException("Paying user not found"));
+
+        boolean paidByIsMember = groupMemberRepository
+                .existsByGroupIdAndUserIdAndActiveTrue(
+                        group.getId(),
+                        paidBy.getId()
+                );
+
+        if (!paidByIsMember) {
+            throw new RuntimeException("Paying user must be an active group member");
+        }
 
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
@@ -471,9 +496,24 @@ public class GroupService {
 
         GroupExpense savedExpense = groupExpenseRepository.save(expense);
 
-        int memberCount = request.getMemberIds().size();
+        List<UUID> memberIds = request.getMemberIds();
+
+        for (UUID memberId : memberIds) {
+            boolean isActiveMember = groupMemberRepository
+                    .existsByGroupIdAndUserIdAndActiveTrue(
+                            group.getId(),
+                            memberId
+                    );
+
+            if (!isActiveMember) {
+                throw new RuntimeException(
+                        "One or more selected members are not active group members"
+                );
+            }
+        }
 
         BigDecimal totalAmount = request.getAmount();
+        int memberCount = memberIds.size();
 
         BigDecimal baseShare = totalAmount.divide(
                 BigDecimal.valueOf(memberCount),
@@ -482,16 +522,18 @@ public class GroupService {
         );
 
         BigDecimal distributedAmount = baseShare.multiply(
-                BigDecimal.valueOf(memberCount));
+                BigDecimal.valueOf(memberCount)
+        );
 
         BigDecimal remainder = totalAmount.subtract(distributedAmount);
 
         for (int i = 0; i < memberCount; i++) {
-            UUID memberId = request.getMemberIds().get(i);
+            UUID memberId = memberIds.get(i);
 
             User member = userRepository.findById(memberId)
                     .orElseThrow(() -> new RuntimeException(
-                            "Member not found: " + memberId));
+                            "Member not found: " + memberId
+                    ));
 
             BigDecimal shareAmount = baseShare;
 
@@ -507,6 +549,8 @@ public class GroupService {
 
             expenseSplitRepository.save(split);
         }
+
+        // Keep your existing notification code below this point
 
         List<String> userIdsToNotify = request.getMemberIds()
                 .stream()
@@ -581,6 +625,9 @@ public class GroupService {
 
     @Transactional
     public void deleteGroupExpense(UUID groupId, UUID expenseId, User currentUser) {
+
+        assertGroupMember(groupId, currentUser.getId());
+
         GroupExpense expense = groupExpenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));
 
@@ -627,10 +674,14 @@ public class GroupService {
 
     @Transactional
     public GroupExpense updateGroupExpense(
+
+
             UUID groupId,
             UUID expenseId,
             GroupExpenseRequest request,
             User currentUser) {
+
+        assertGroupMember(groupId, currentUser.getId());
 
         GroupExpense expense = groupExpenseRepository.findById(expenseId)
                 .orElseThrow(() -> new RuntimeException("Expense not found"));

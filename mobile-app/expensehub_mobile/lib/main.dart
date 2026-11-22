@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'screens/auth_gate.dart';
 import 'screens/login_screen.dart';
 import 'services/notification_service.dart';
+import 'utils/app_navigator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ class ExpenseHubApp extends StatelessWidget {
         colorSchemeSeed: Colors.teal,
         useMaterial3: true,
       ),
+      navigatorKey: appNavigatorKey,
       home: const AuthGate(),
     );
   }
